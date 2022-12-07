@@ -1,0 +1,72 @@
+## Install Arax
+
+Download and install the libarary and the controller:
+
+```bash
+sudo apt-get update
+sudo apt-get install -y build-essential cmake
+
+git clone https://carvgit.ics.forth.gr/accelerators/arax.git
+cd arax
+git checkout arax
+cd build
+cmake -DCMAKE_BUILD_TYPE=Debug ..
+make
+sudo make install
+cd ../..
+
+git clone https://carvgit.ics.forth.gr/accelerators/arax_controller.git
+cd arax_controller
+git checkout arax
+mkdir build
+cd build
+cmake -DCMAKE_BUILD_TYPE=Debug ..
+make
+sudo make install
+cd ../..
+```
+
+## Run Arax
+
+Build an example, configure and run the controller:
+
+```bash
+cd arax/build
+make noop noop_stress
+
+echo "shm_file $USER" > ~/.arax
+echo "shm_size 67108864" >> ~/.arax
+cat >cpu.json <<EOF
+{
+  "paths": ["arax/build/noop"],
+  "groups": {
+    "1Gpu": {
+      "accels": [
+        {
+          "arch": "CPU",
+          "cpu_core": "1",
+          "job_pref": "AnyJob"
+        }
+      ],
+      "sched": {
+        "class": "RoundRobin"
+      }
+    }
+  }
+}
+EOF
+arax_controller cpu.json &> arax_controller.log &
+
+./arax/build/noop/noop_stress test
+```
+
+To rebuild everything:
+
+```bash
+(cd arax_controller/build; sudo make uninstall)
+(cd arax/build; sudo make uninstall)
+(cd arax; rm -rf build; mkdir build; cd build; cmake -DCMAKE_BUILD_TYPE=Debug -Dasync_architecture=spin ..; make -j; sudo make install)
+(cd arax_controller; rm -rf build; mkdir build; cd build; cmake -DCMAKE_BUILD_TYPE=Debug ..; make -j; sudo make install)
+(cd arax/build; make -j noop noop_stress)
+```
+
