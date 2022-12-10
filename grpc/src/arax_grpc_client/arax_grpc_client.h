@@ -82,6 +82,18 @@ public:
     uint64_t client_arax_proc_register(const char *func_name);
 
     /*
+     * Retrieve a previously registered arax_process
+     *
+     * \Note Calls to client_arax_proc_register(..), client_arax_proc_get(..),
+     * should have matching calls to arax_proc_put(..)
+     *
+     * @param func_name The process func name
+     *
+     * @return The ID of the resource, or 0 on failure
+     */
+    uint64_t client_arax_proc_get(const char *func_name);
+
+    /*
      * Delete registered arax proc pointer
      *
      * @param proc The name of the process
@@ -118,7 +130,7 @@ public:
      *
      * @return nothing
      */
-    void client_arax_set_data(uint64_t buffer, uint64_t accel, const char *value);
+    void client_arax_set_data(uint64_t buffer, uint64_t accel, void *value);
 
     /*
      * Issue a new task

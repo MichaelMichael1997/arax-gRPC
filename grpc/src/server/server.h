@@ -143,6 +143,20 @@ public:
       const arax::ProcRequest *req, arax::ResourceID *res) override;
 
     /*
+     * Retrieve a previously registerd process
+     * Calls to Arax_proc_register(..), Arax_proc_get(..) should have matching
+     * calls to Arax_proc_put(..)
+     *
+     * @param ctx The server context
+     * @param req ProcRequest message with the functor name
+     * @param res ResourceID message with the ID of the resource
+     *
+     * @return The appropriate status code
+     */
+    grpc::Status Arax_proc_get(grpc::ServerContext *ctx,
+      const arax::ProcRequest *req, arax::ResourceID *res) override;
+
+    /*
      * Delete registered arax_proc pointer
      *
      * @param ctx Server Context

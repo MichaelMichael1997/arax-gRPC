@@ -176,6 +176,46 @@ uint64_t AraxClient::client_arax_proc_register(const char *func_name)
 }
 
 /*
+ * Retrieve a previously registered arax_process
+ *
+ * \Note Calls to client_arax_proc_register(..), client_arax_proc_get(..),
+ * should have matching calls to arax_proc_put(..)
+ *
+ * @param func_name The process func name
+ *
+ * @return The ID of the resource or 0 on failure
+ */
+uint64_t AraxClient::client_arax_proc_get(const char *func_name)
+{
+    ClientContext ctx;
+    ProcRequest req;
+    ResourceID res;
+
+    req.set_func_name(func_name);
+
+    Status status = stub_->Arax_proc_get(&ctx, req, &res);
+
+    if (!status.ok()) {
+        #ifdef __linux__
+        std::stringstream ss;
+        ss << ERROR_COL;
+        ss << "\nERROR: " << status.error_code() << "\n";
+        ss << status.error_message() << "\n";
+        ss << status.error_details() << "\n\n";
+        ss << RESET_COL;
+        std::cerr << ss.str();
+        #else
+        std::cerr << "\nERROR: " << status.error_code() << "\n";
+        std::cerr << status.error_message() << "\n";
+        std::cerr << status.error_details() << "\n\n";
+        #endif /* ifdef __linux__ */
+        return 0;
+    }
+
+    return res.id();
+}
+
+/*
  * Delete registered arax proc pointer
  *
  * @param proc The ID of the arax_proc
@@ -298,7 +338,7 @@ void AraxClient::client_arax_accel_release(uint64_t id)
  *
  * @return nothing
  */
-void AraxClient::client_arax_set_data(uint64_t buffer, uint64_t accel, const char *value)
+void AraxClient::client_arax_set_data(uint64_t buffer, uint64_t accel, void *value)
 {
     DataSet req;
     Empty res;
@@ -306,7 +346,10 @@ void AraxClient::client_arax_set_data(uint64_t buffer, uint64_t accel, const cha
 
     req.set_buffer(buffer);
     req.set_accel(accel);
-    req.set_str_val(value);
+
+    std::string pointer_str = std::to_string(reinterpret_cast<uint64_t>(value));
+
+    ctx.AddMetadata("data_set", pointer_str);
 
     Status status = stub_->Arax_data_set(&ctx, req, &res);
 
@@ -329,7 +372,7 @@ void AraxClient::client_arax_set_data(uint64_t buffer, uint64_t accel, const cha
 
     std::cout << "-- Data was set successfully\n";
     return;
-}
+} // AraxClient::client_arax_set_data
 
 /*
  * Issue a new task

@@ -9,20 +9,6 @@ package arax;
 service Arax{
 
  /*
-  * Initialize arax
-  * This should be called by all applications prior to using any other Arax
-  * function.
-  *
-  * @return An Arax_pipe_s message instance
-  */
-  /* rpc Arax_init(google.protobuf.Empty) returns (google.protobuf.Empty) {} */
-
- /*
-  * Exit and cleanup Arax
-  */
-  /* rpc Arax_exit(google.protobuf.Empty) returns (google.protobuf.Empty) {} */
-
- /*
   * Delete the shared segment
   */
   rpc Arax_clean(google.protobuf.Empty) returns (google.protobuf.Empty){}
@@ -67,6 +53,11 @@ service Arax{
   * Register a new process 'func name'
   */
   rpc Arax_proc_register(ProcRequest) returns (ResourceID) {}
+
+ /*
+  * Retrieve a previously registered process
+  */
+  rpc Arax_proc_get(ProcRequest) returns (ResourceID) {}
 
  /*
   * Delete registered arax_proc pointer

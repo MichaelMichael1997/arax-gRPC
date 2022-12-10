@@ -174,6 +174,51 @@ Status AraxServer::Arax_proc_register(ServerContext *ctx, const ProcRequest *req
 }
 
 /*
+ * Retrieve a previously registerd process
+ * Calls to Arax_proc_register(..), Arax_proc_get(..) should have matching
+ * calls to Arax_proc_put(..)
+ *
+ * @param ctx The server context
+ * @param req ProcRequest message with the functor name
+ * @param res ResourceID message with the ID of the resource
+ *
+ * @return The appropriate status code
+ */
+Status AraxServer::Arax_proc_get(ServerContext *ctx, const ProcRequest *req, ResourceID *res)
+{
+    #ifdef DEBUG
+    assert(ctx);
+    assert(req);
+    assert(res);
+    #endif
+
+    std::string func(req->func_name());
+
+    arax_proc *proc = arax_proc_get(func.c_str());
+
+    if (!proc) {
+        std::string error("Could not retrieve process '" + func
+          + "'. Maybe it has not been registered, or arax failed to retrieve it");
+        return Status(StatusCode::INVALID_ARGUMENT, error);
+    }
+
+    // Check if the retrieved process is already in the mapping
+    for (auto i: arax_processes) {
+        if (i.second == proc) { // Process already exists in the mapping
+            res->set_id(i.first);
+            return Status::OK;
+        }
+    }
+
+    // Add the retrieved process to the arax_proc mapping, if it's not already there
+    // Also return the ID of the resource
+    res->set_id(get_unique_id());
+    insert_pair(arax_processes, res->id(), proc);
+
+    return Status::OK;
+}
+
+/*
  * Delete registered arax_proc pointer
  *
  * @param ctx Server Context
@@ -290,9 +335,19 @@ grpc::Status AraxServer::Arax_data_set(grpc::ServerContext *ctx, const arax::Dat
     assert(res);
     #endif /* ifdef DEBUG */
 
-    uint64_t buffer  = req->buffer();
-    uint64_t accel   = req->accel();
-    std::string data = req->str_val();
+    uint64_t buffer = req->buffer();
+    uint64_t accel  = req->accel();
+
+    auto metadata = ctx->client_metadata();
+
+    if (metadata.find("data_set") == metadata.end()) {
+        std::cout << "Oops.. No data found\n";
+    }
+
+    auto data = metadata.find("data_set");
+
+    // convert string address to pointer address
+    void *pointer = reinterpret_cast<void *>(std::stoll(data->second.data()));
 
     if (!check_if_exists(buffers, buffer)) {
         std::string error_msg("-- No buffer exists with ID'" + std::to_string(buffer) + "' --");
@@ -304,9 +359,9 @@ grpc::Status AraxServer::Arax_data_set(grpc::ServerContext *ctx, const arax::Dat
         return Status(StatusCode::INVALID_ARGUMENT, error_msg);
     }
 
-    arax_data_set(buffers[buffer], arax_accels[accel], &data);
+    arax_data_set(buffers[buffer], arax_accels[accel], pointer);
     return Status::OK;
-}
+} // AraxServer::Arax_data_set
 
 /*
  * Issue a new arax task
