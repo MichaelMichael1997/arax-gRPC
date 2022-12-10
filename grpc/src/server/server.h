@@ -215,6 +215,18 @@ public:
       const arax::ResourceID *req, arax::DataSet *res) override;
 
     /*
+     * Get size of the specified data
+     *
+     * @param ctx The server context
+     * @param req ResourceID message holding the ID of the buffer
+     * @param res DataSet message holding the size of the data
+     *
+     * @return The appropriate status code
+     */
+    grpc::Status Arax_data_size(grpc::ServerContext *ctx,
+      const arax::ResourceID *req, arax::DataSet *res) override;
+
+    /*
      * Issue a new arax task
      *
      * @param ctx The server context

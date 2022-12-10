@@ -68,40 +68,6 @@ void AraxClient::client_arax_clean()
 }
 
 /*
- * Get the type of accelerator, specified in the AccelDescriptor request message
- *
- * @param req The accel descriptor message request
- *
- * @return the type of the accelerator -1 on failure
- */
-int AraxClient::client_arax_accel_type(AccelDescriptor req)
-{
-    ClientContext ctx;
-    AccelListRequest res;
-
-    Status status = stub_->Arax_accel_type(&ctx, req, &res);
-
-    if (!status.ok()) {
-        #ifdef __linux__
-        std::stringstream ss;
-        ss << ERROR_COL;
-        ss << "\nERROR: " << status.error_code() << "\n";
-        ss << status.error_message() << "\n";
-        ss << status.error_details() << "\n\n";
-        ss << RESET_COL;
-        std::cerr << ss.str();
-        #else
-        std::cerr << "\nERROR: " << status.error_code() << "\n";
-        std::cerr << status.error_message() << "\n";
-        std::cerr << status.error_details() << "\n\n";
-        #endif /* ifdef __linux__ */
-        return -1;
-    }
-
-    return res.type();
-}
-
-/*
  * Create an arax_buffer_s object
  *
  * @param size The desired size for the buffer
@@ -406,6 +372,44 @@ const char * AraxClient::client_arax_data_get(uint64_t buffer)
     }
 
     return res.str_val().c_str();
+}
+
+/*
+ * Return the size of the data of specified arax_data
+ *
+ * @param id The ID of the arax_buffer
+ *
+ * @return The size of the data
+ */
+size_t AraxClient::client_arax_data_size(uint64_t id)
+{
+    ClientContext ctx;
+    ResourceID req;
+    DataSet res;
+
+    req.set_id(id);
+
+    Status status = stub_->Arax_data_size(&ctx, req, &res);
+
+    if (!status.ok()) {
+        #ifdef __linux
+        std::stringstream ss;
+        ss << ERROR_COL;
+        ss << "\nERROR: " << status.error_code() << "\n";
+        ss << status.error_message() << "\n";
+        ss << status.error_details() << "\n\n";
+        ss << RESET_COL;
+        std::cerr << ss.str();
+        #else
+        std::cerr << "\nERROR: " << status.error_code() << "\n";
+        std::cerr << status.error_message() << "\n";
+        std::cerr << status.error_details() << "\n\n";
+        #endif /* ifdef __linux__ */
+
+        return 0;
+    }
+
+    return res.data_size();
 }
 
 /*

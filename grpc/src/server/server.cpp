@@ -391,6 +391,38 @@ Status AraxServer::Arax_data_get(ServerContext *ctx, const ResourceID *req, Data
 }
 
 /*
+ * Get size of the specified data
+ *
+ * @param ctx The server context
+ * @param req ResourceID message holding the ID of the buffer
+ * @param res DataSet message holding the size of the data
+ *
+ * @return The appropriate status code
+ */
+Status AraxServer::Arax_data_size(ServerContext *ctx, const ResourceID *req, DataSet *res)
+{
+    #ifdef DEBUG
+    assert(ctx);
+    assert(req);
+    assert(res);
+    #endif
+
+    uint64_t id = req->id();
+
+    // Check if buffer exists
+    if (!check_if_exists(buffers, id)) {
+        std::string error("-- Buffer with ID '" + std::to_string(id) + "' does not exist --");
+        return Status(StatusCode::INVALID_ARGUMENT, error);
+    }
+
+    size_t size = arax_data_size(buffers[id]);
+
+    res->set_data_size(size);
+
+    return Status::OK;
+}
+
+/*
  * Issue a new arax task
  *
  * @param ctx The server context

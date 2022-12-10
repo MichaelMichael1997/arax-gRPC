@@ -13,36 +13,6 @@ service Arax{
   */
   rpc Arax_clean(google.protobuf.Empty) returns (google.protobuf.Empty){}
 
-  /*
-  * Return number of accelerators of provided type
-  */
-  rpc Arax_accel_list(AccelListRequest) returns (AccelListResponse) {}
-
- /*
-  * Get arax revision
-  */
-  rpc Arax_pipe_get_revision(google.protobuf.Empty) returns (RevisionResponse) {}
-
- /*
-  * Increase process counter for pipe
-  */
-  rpc Arax_pipe_add_process(google.protobuf.Empty) returns (ProcCounter) {}
-
- /*
-  * Decrease process counter for pipe
-  */
-  rpc Arax_pipe_del_process(google.protobuf.Empty) returns (ProcCounter) {}
-
- /*
-  * Free memory of accelerator array returned by Arax_accel_list
-  */
-  rpc Arax_accel_list_free(google.protobuf.Empty) returns (google.protobuf.Empty) {}
-
- /*
-  * Return the type of accelerator specified by the client
-  */
-  rpc Arax_accel_type(AccelDescriptor) returns (AccelListRequest) {}
-
  /*
   * Create an arax buffer object
   *
@@ -80,6 +50,11 @@ service Arax{
    rpc Arax_data_set(DataSet) returns (google.protobuf.Empty){}
 
   /*
+   * Return size of provided arax data 
+   */
+   rpc Arax_data_size(ResourceID) returns (DataSet) {}
+
+  /*
    * Get the data from buffer and return them
    */
    rpc Arax_data_get(ResourceID) returns (DataSet) {}
@@ -98,27 +73,6 @@ service Arax{
     * Wait for an issued task to complete or fail
     */
     rpc Arax_task_wait(Task) returns (Task){}
-
-   /*
-    * Return an orphan/unassigned virtual accelerator or NULL
-    */
-    rpc Arax_pipe_get_orphan_vaccel(google.protobuf.Empty) returns (ResourceID){}
-
-   /*
-    *
-    */
-    rpc Arax_pipe_add_orphan_vaccel(ResourceID) returns (google.protobuf.Empty){}
-
-   /*
-    * Function will check if there are orphan vaccels
-    * Note: This function might return old values
-    */
-    rpc Arax_pipe_have_orphan_vaccels(google.protobuf.Empty) returns (Success){}
-
-   /*
-    * Remove vac from list of orphan vaccels
-    */
-    rpc Arax_pipe_remove_orphan_vaccel(ResourceID) returns (google.protobuf.Empty) {}
 }
 
 
@@ -156,6 +110,7 @@ message DataSet{
   string str_val = 3;
   // rather than having string str_val, we could use bytes
   // It all depends on the data that we can pass to buffers
+  uint64 data_size = 4; // field used for arax_data_size
 }
 
 message AccelRequest{
@@ -178,32 +133,9 @@ message ProcCounter{
   uint32 proc_counter = 1;
 }
 
-// Accel descriptors are saved in the server
-// If the client wants access to one of them,
-// they have to specify an index (for the descriptor array)
-// Should probably also attach some other information regarding the descriptor
-// For now, let's store the arax_accel_type_e in a string 
-message AccelDescriptor{
-  int32 index = 1;
-  string type = 2;
-}
 
 message RevisionResponse{
   string revision = 1;
-}
-
-message AccelListRequest{
-  int32 type = 1; // enum type, can be CPU, GPU, GPU_SOFT etc
-  bool physical = 2;
-}
-
-// Response message used for the Arax_accel_list function
-// The arax function returns an integer for the number
-// of accelerators of a specific type that are found
-// TODO: See how we can represent the arax_accel ***accels (arax_accel is typedef void)
-message AccelListResponse{
-  uint64 accel_num = 1;
-  repeated AccelDescriptor descriptors = 2;
 }
 
 

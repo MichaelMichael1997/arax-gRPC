@@ -55,15 +55,6 @@ public:
     void client_arax_clean();
 
     /*
-     * Get the type of accelerator, specified in the AccelDescriptor request message
-     *
-     * @param the request message
-     *
-     * @return the type of the accelerator or -1 on failure
-     */
-    int client_arax_accel_type(arax::AccelDescriptor req);
-
-    /*
      * Create an arax_buffer_s object
      *
      * @param size The desired size for the buffer
@@ -140,6 +131,15 @@ public:
      * @return The data
      */
     const char* client_arax_data_get(uint64_t buffer);
+
+    /*
+     * Return the size of the data of specified arax_data
+     *
+     * @param id The ID of the arax_buffer
+     *
+     * @return The size of the data
+     */
+    size_t client_arax_data_size(uint64_t id);
 
     /*
      * Issue a new task
