@@ -9,3 +9,8 @@ examples/noop
 *.swp
 .miniconda
 Miniconda3-latest-Linux-x86_64.sh
+
+# --- Everytime I build arax, git wants to add all the noisy build files, we don't need those. Remove this later if need ---
+
+build/
+.cache
