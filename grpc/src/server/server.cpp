@@ -338,17 +338,6 @@ grpc::Status AraxServer::Arax_data_set(grpc::ServerContext *ctx, const arax::Dat
     uint64_t buffer = req->buffer();
     uint64_t accel  = req->accel();
 
-    auto metadata = ctx->client_metadata();
-
-    if (metadata.find("data_set") == metadata.end()) {
-        std::cout << "Oops.. No data found\n";
-    }
-
-    auto data = metadata.find("data_set");
-
-    // convert string address to pointer address
-    void *pointer = reinterpret_cast<void *>(std::stoll(data->second.data()));
-
     if (!check_if_exists(buffers, buffer)) {
         std::string error_msg("-- No buffer exists with ID'" + std::to_string(buffer) + "' --");
         return Status(StatusCode::INVALID_ARGUMENT, error_msg);
@@ -359,9 +348,47 @@ grpc::Status AraxServer::Arax_data_set(grpc::ServerContext *ctx, const arax::Dat
         return Status(StatusCode::INVALID_ARGUMENT, error_msg);
     }
 
-    arax_data_set(buffers[buffer], arax_accels[accel], pointer);
+    arax_data_set(buffers[buffer], arax_accels[accel], &req->str_val());
     return Status::OK;
 } // AraxServer::Arax_data_set
+
+/*
+ * Get data from buffer and return them to user
+ *
+ * @param ctx The server context
+ * @param req ResourceID message holding the ID of the buffer
+ * @param res DataSet message holding the data to be returned
+ *
+ * @return The appropriate status code
+ */
+Status AraxServer::Arax_data_get(ServerContext *ctx, const ResourceID *req, DataSet *res)
+{
+    #ifdef DEBUG
+    assert(ctx);
+    assert(req);
+    assert(res);
+    #endif /* ifdef DEBUG */
+
+    uint64_t id = req->id();
+
+    /* Check if buffer with that ID exists */
+    if (!check_if_exists(buffers, id)) {
+        std::string error_msg("-- No buffer with ID '" + std::to_string(id) + "' exists --");
+        return Status(StatusCode::INVALID_ARGUMENT, error_msg);
+    }
+
+    // Alocate memory for the data to be copied
+    const char *data = (char *) malloc(sizeof(arax_data_size(buffers[id])));
+    if (!data) {
+        std::string error("-- The system failed to allocate memory --");
+        return Status(StatusCode::INTERNAL, error);
+    }
+
+    arax_data_get(buffers[id], &data);
+    res->set_str_val(data);
+
+    return Status::OK;
+}
 
 /*
  * Issue a new arax task

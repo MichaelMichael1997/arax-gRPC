@@ -338,7 +338,7 @@ void AraxClient::client_arax_accel_release(uint64_t id)
  *
  * @return nothing
  */
-void AraxClient::client_arax_set_data(uint64_t buffer, uint64_t accel, void *value)
+void AraxClient::client_arax_data_set(uint64_t buffer, uint64_t accel, const char *value)
 {
     DataSet req;
     Empty res;
@@ -346,10 +346,7 @@ void AraxClient::client_arax_set_data(uint64_t buffer, uint64_t accel, void *val
 
     req.set_buffer(buffer);
     req.set_accel(accel);
-
-    std::string pointer_str = std::to_string(reinterpret_cast<uint64_t>(value));
-
-    ctx.AddMetadata("data_set", pointer_str);
+    req.set_str_val(value);
 
     Status status = stub_->Arax_data_set(&ctx, req, &res);
 
@@ -373,6 +370,43 @@ void AraxClient::client_arax_set_data(uint64_t buffer, uint64_t accel, void *val
     std::cout << "-- Data was set successfully\n";
     return;
 } // AraxClient::client_arax_set_data
+
+/*
+ * Return the data that was set to an arax buffer
+ *
+ * @param buffer The ID of the buffer
+ *
+ * @return The data
+ */
+const char * AraxClient::client_arax_data_get(uint64_t buffer)
+{
+    ClientContext ctx;
+    ResourceID req;
+    DataSet res;
+
+    req.set_id(buffer);
+
+    Status status = stub_->Arax_data_get(&ctx, req, &res);
+
+    if (!status.ok()) {
+        #ifdef __linux
+        std::stringstream ss;
+        ss << ERROR_COL;
+        ss << "\nERROR: " << status.error_code() << "\n";
+        ss << status.error_message() << "\n";
+        ss << status.error_details() << "\n\n";
+        ss << RESET_COL;
+        std::cerr << ss.str();
+        #else
+        std::cerr << "\nERROR: " << status.error_code() << "\n";
+        std::cerr << status.error_message() << "\n";
+        std::cerr << status.error_details() << "\n\n";
+        #endif /* ifdef __linux__ */
+        return "";
+    }
+
+    return res.str_val().c_str();
+}
 
 /*
  * Issue a new task

@@ -130,7 +130,16 @@ public:
      *
      * @return nothing
      */
-    void client_arax_set_data(uint64_t buffer, uint64_t accel, void *value);
+    void client_arax_data_set(uint64_t buffer, uint64_t accel, const char *value);
+
+    /*
+     * Return the data that was set to an arax buffer
+     *
+     * @param buffer The ID of the buffer
+     *
+     * @return The data
+     */
+    const char* client_arax_data_get(uint64_t buffer);
 
     /*
      * Issue a new task

@@ -203,6 +203,18 @@ public:
       const arax::DataSet *req, google::protobuf::Empty *res) override;
 
     /*
+     * Get data from buffer and return them to user
+     *
+     * @param ctx The server context
+     * @param req ResourceID message holding the ID of the buffer
+     * @param res DataSet message holding the data to be returned
+     *
+     * @return The appropriate status code
+     */
+    grpc::Status Arax_data_get(grpc::ServerContext *ctx,
+      const arax::ResourceID *req, arax::DataSet *res) override;
+
+    /*
      * Issue a new arax task
      *
      * @param ctx The server context
