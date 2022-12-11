@@ -60,6 +60,52 @@ AraxServer::AraxServer()
 }
 
 /*
+ * Constructor to start the server
+ *
+ * @param addr The address to connect
+ */
+AraxServer::AraxServer(const char *addr)
+{
+    /*----- initialize arax -----*/
+    std::cout << "-- Initializing Arax --\n";
+    try{
+        pipe_s = arax_init();
+
+        if (pipe_s == NULL) {
+            #ifdef __linux__
+            std::stringstream ss;
+            ss << ERROR_COL << "Arax failed to initialize, please try again later" << RESET_COL << "\n";
+            throw std::runtime_error(ss.str());
+            #else
+            throw std::runtime_error("Arax failed to initialize, please try again later\n");
+            #endif /* ifdef __linux__ */
+        } else {
+            #ifdef __linux__
+            std::stringstream ss;
+            ss << SUCCESS_COL << "Arax was initialized successfully" << RESET_COL << "\n";
+            std::cout << ss.str();
+            #else
+            std::cout << "Arax was initialized successfully\n";
+            #endif /* ifdef __linux__ */
+        }
+    }
+    catch (std::runtime_error& e) {
+        std::cerr << e.what();
+        exit(1);
+    }
+    unique_id = 1;
+
+    /* ----- Init the server ------ */
+
+    std::cout << "Starting the server ..\n";
+    ServerBuilder builder;
+
+    builder.AddListeningPort(addr, grpc::InsecureServerCredentials());
+    builder.RegisterService(this);
+    server = std::unique_ptr<Server>(builder.BuildAndStart());
+}
+
+/*
  * Destructors
  * Exit and cleanup the arax service
  */
@@ -68,6 +114,31 @@ AraxServer::~AraxServer()
     /* Leave arax */
     std::cout << "-- Exiting Arax --\n";
     arax_exit();
+
+    server->Shutdown();
+}
+
+/*
+ * Function to start the server
+ *
+ * @param addr The address to connect to
+ *
+ * @return void
+ */
+void AraxServer::start_server(const char *addr)
+{
+    std::cout << "Server listening on " << addr << "\n";
+    server->Wait();
+}
+
+/*
+ * Function to shutdown the server
+ *
+ * @return void
+ */
+void AraxServer::shutdown()
+{
+    server->Shutdown();
 }
 
 /*
@@ -604,9 +675,9 @@ void RunServer(std::string address)
     server->Wait();
 }
 
-int main()
-{
-    RunServer("0.0.0.0:50051");
+// int main()
+// {
+//     RunServer("0.0.0.0:50051");
 
-    return 0;
-}
+//     return 0;
+// }

@@ -40,9 +40,9 @@ target_compile_definitions(testlib PRIVATE BUILD_SO)
 target_link_libraries(testlib arax)
 
 # Create the executable and create link the library
-foreach(_target simple simple_grpc clean_arax data noop_grpc)
+foreach(_target simple simple_grpc clean_arax data noop_grpc same_proc)
 	add_executable(${_target}
-			"${_target}.cpp" 
+			"${_target}.cpp" ../server/server.cpp 
 		      )
 	# include path to arax include files
 	target_include_directories(${_target} PRIVATE ../../../build/include)

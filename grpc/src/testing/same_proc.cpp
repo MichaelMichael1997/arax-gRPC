@@ -1,9 +1,10 @@
 #include "../arax_grpc_client/arax_grpc_client.h"
+#include "../server/server.h"
 #include <grpcpp/security/credentials.h>
 
 /*
- *  Simple test file to see if the functions were as intended,
- *  but in isolation. This is NOT an actual demo
+ *  Test to see if we can have a server and a client running
+ *  in the same process, using multithreading
  */
 
 using grpc::Channel;
@@ -23,6 +24,14 @@ using namespace arax;
 
 int main(int argc, char *argv[])
 {
+    AraxServer server("localhost:50051");
+
+    // Start a new server thread to listen to requests
+    // Otherwise it will block the rest of the program
+    std::thread server_thread([&server](){
+      server.start_server("localhost:50051");
+        });
+
     AraxClient client(grpc::CreateChannel("localhost:50051", grpc::InsecureChannelCredentials()));
 
     std::string input("helloworld");
@@ -53,6 +62,11 @@ int main(int argc, char *argv[])
 
     // std::cout << "ID of buffer: " << buffer << "\n";
     // std::cout << "ID of proc: " << proc << "\n";
+
+    server.shutdown();
+
+    // Terminate server thread
+    server_thread.join();
 
     return 0;
 } // main
