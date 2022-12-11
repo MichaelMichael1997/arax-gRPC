@@ -413,6 +413,45 @@ size_t AraxClient::client_arax_data_size(uint64_t id)
 }
 
 /*
+ * Mark data for deletion
+ *
+ * @param id The id of the buffer
+ *
+ * @return nothing
+ */
+void AraxClient::client_arax_data_free(uint64_t id)
+{
+    ClientContext ctx;
+    ResourceID req;
+    Empty res;
+
+    req.set_id(id);
+
+    Status status = stub_->Arax_data_free(&ctx, req, &res);
+
+    if (!status.ok()) {
+        #ifdef __linux
+        std::stringstream ss;
+        ss << ERROR_COL;
+        ss << "\nERROR: " << status.error_code() << "\n";
+        ss << status.error_message() << "\n";
+        ss << status.error_details() << "\n\n";
+        ss << RESET_COL;
+        std::cerr << ss.str();
+        #else
+        std::cerr << "\nERROR: " << status.error_code() << "\n";
+        std::cerr << status.error_message() << "\n";
+        std::cerr << status.error_details() << "\n\n";
+        #endif /* ifdef __linux__ */
+
+        return;
+    }
+
+
+    return;
+}
+
+/*
  * Issue a new task
  *
  * @param accel The ID of the accelerator responsible for executing the task

@@ -227,6 +227,16 @@ public:
       const arax::ResourceID *req, arax::DataSet *res) override;
 
     /*
+     * Mark data for deletion
+     *
+     * @param ctx The server context
+     * @param req ResourceID messsage holding the ID of the buffer
+     * @param res Empty message
+     */
+    grpc::Status Arax_data_free(grpc::ServerContext *ctx,
+      const arax::ResourceID *req, google::protobuf::Empty *res) override;
+
+    /*
      * Issue a new arax task
      *
      * @param ctx The server context

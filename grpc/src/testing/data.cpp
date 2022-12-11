@@ -22,6 +22,7 @@ void something_op(char *str)
     return;
 }
 
+#ifdef BUILD_MAIN
 int main(int argc, char *argv[])
 {
     char *test = (char *) malloc(sizeof(char) * 5);
@@ -74,15 +75,18 @@ int main(int argc, char *argv[])
     return 0;
 } // main
 
+#endif /* BUILD_MAIN */
+
 #ifdef BUILD_SO
+
 arax_task_state_e something(arax_task_msg_s *msg)
 {
     arax_task_mark_done(msg, task_completed);
     return task_completed;
 }
 
-ARAX_PROC_LIST_START()
-ARAX_PROCEDURE("something", CPU, something, 0)
-ARAX_PROCEDURE("something", CPU, something, 0)
-ARAX_PROC_LIST_END()
+// ARAX_PROC_LIST_START()
+// ARAX_PROCEDURE("something", CPU, something, 0)
+// ARAX_PROCEDURE("something", CPU, something, 0)
+// ARAX_PROC_LIST_END()
 #endif /* BUILD_SO */

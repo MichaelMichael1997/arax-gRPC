@@ -423,6 +423,41 @@ Status AraxServer::Arax_data_size(ServerContext *ctx, const ResourceID *req, Dat
 }
 
 /*
+ * Mark data for deletion
+ *
+ * @param ctx The server context
+ * @param req ResourceID messsage holding the ID of the buffer
+ * @param res Empty message
+ */
+Status AraxServer::Arax_data_free(ServerContext *ctx, const ResourceID *req, Empty *res)
+{
+    #ifdef DEBUG
+    assert(ctx);
+    assert(req);
+    assert(res);
+    #endif
+
+    uint64_t id = req->id();
+
+    // Check if buffer with ID exists
+    if (!check_if_exists(buffers, id)) {
+        std::string error("-- No buffer with ID '" + std::to_string(id) + "' exists --");
+        return Status(StatusCode::INVALID_ARGUMENT, error);
+    }
+
+    arax_data_free(buffers[id]);
+
+    // Remove the buffer from the mapping
+    buffers.erase(id);
+
+    #ifdef DEBUG
+    assert(!check_if_exists(buffers, id));
+    #endif
+
+    return Status::OK;
+}
+
+/*
  * Issue a new arax task
  *
  * @param ctx The server context
@@ -571,24 +606,7 @@ void RunServer(std::string address)
 
 int main()
 {
-    // Stuff we still need to do:
-    // 1. Safe shutdown
-    // 2. Timeouts Maybe
-    // 3. and more
-
-    // RunServer("0.0.0.0:50051");
-    std::string address("0.0.0.0:50051");
-
-    std::cout << "Starting the server ..\n";
-    AraxServer service;
-    ServerBuilder builder;
-
-    builder.AddListeningPort(address, grpc::InsecureServerCredentials());
-    builder.RegisterService(&service);
-    std::unique_ptr<Server> server(builder.BuildAndStart());
-
-    std::cout << "Server listening on " << address << "\n";
-    server->Wait();
+    RunServer("0.0.0.0:50051");
 
     return 0;
 }

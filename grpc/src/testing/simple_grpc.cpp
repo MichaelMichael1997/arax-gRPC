@@ -19,20 +19,34 @@ int main(int argc, char *argv[])
 {
     AraxClient client(grpc::CreateChannel("localhost:50051", grpc::InsecureChannelCredentials()));
 
+    std::string input("helloworld");
+
     // Request buffer
-    const uint64_t buffer = client.client_arax_buffer(5);
+    const uint64_t buffer = client.client_arax_buffer(strlen(input.c_str()) + 1);
 
     // Request accelerator
-    const uint64_t accel1 = client.client_arax_accel_acquire_type(CPU);
+    const uint64_t accel = client.client_arax_accel_acquire_type(CPU);
 
-    client.client_arax_accel_release(accel1);
+    client.client_arax_data_set(buffer, accel, input.c_str());
 
-    const uint64_t proc = client.client_arax_proc_register("Random");
+    std::string data_get(client.client_arax_data_get(buffer));
 
-    client.client_arax_proc_put(proc);
+    std::cout << "Data gotten from buffer: " << data_get << "\n";
 
-    std::cout << "ID of buffer: " << buffer << "\n";
-    std::cout << "ID of proc: " << proc << "\n";
+    client.client_arax_data_free(buffer);
+
+    std::string data_get2(client.client_arax_data_get(buffer));
+
+    std::cout << "Data gotten after data_free: " << data_get2 << "\n";
+
+    client.client_arax_accel_release(accel);
+
+    // const uint64_t proc = client.client_arax_proc_register("Random");
+
+    // client.client_arax_proc_put(proc);
+
+    // std::cout << "ID of buffer: " << buffer << "\n";
+    // std::cout << "ID of proc: " << proc << "\n";
 
     return 0;
-}
+} // main

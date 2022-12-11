@@ -60,6 +60,11 @@ service Arax{
    rpc Arax_data_get(ResourceID) returns (DataSet) {}
 
   /*
+   * Mark data for deletion
+   */
+   rpc Arax_data_free(ResourceID) returns (google.protobuf.Empty) {}
+
+  /*
    * Decrease ref counter of task
    */
    rpc Arax_task_free(Task) returns (google.protobuf.Empty){}

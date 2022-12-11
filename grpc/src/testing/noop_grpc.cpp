@@ -1,4 +1,5 @@
 #include "../arax_grpc_client/arax_grpc_client.h"
+#include "../server/server.h"
 
 using grpc::Channel;
 using grpc::ClientContext;
@@ -53,6 +54,7 @@ int main(int argc, char *argv[])
 
     const uint64_t task = client.client_arax_task_issue(accel, proc, 1, io[0], 1, io[1]);
 
+    client.client_arax_task_wait(task);
     // arax_task_issue(accel, proc, &magic, 4, 1, io, 1, io + 1);
 
     // arax_data_get(io[1], out);

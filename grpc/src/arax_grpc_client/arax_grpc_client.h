@@ -142,6 +142,15 @@ public:
     size_t client_arax_data_size(uint64_t id);
 
     /*
+     * Mark data for deletion
+     *
+     * @param id The id of the buffer
+     *
+     * @return nothing
+     */
+    void client_arax_data_free(uint64_t id);
+
+    /*
      * Issue a new task
      *
      * @param accel The ID of the accelerator responsible for executing the task
