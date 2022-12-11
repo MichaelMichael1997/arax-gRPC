@@ -16,11 +16,10 @@ using grpc::Status;
 
 using namespace arax;
 
-#define BUFFER const uint64_t
-#define ACCEL  const uint64_t
-#define PROC   const uint64_t
-#define TASK   const uint64_t
-
+typedef const uint64_t Task;
+typedef const uint64_t Buffer;
+typedef const uint64_t Proc;
+typedef const uint64_t Accel;
 
 int main(int argc, char *argv[])
 {
@@ -37,10 +36,10 @@ int main(int argc, char *argv[])
     std::string input("helloworld");
 
     // Request buffer
-    BUFFER buffer = client.client_arax_buffer(strlen(input.c_str()) + 1);
+    Buffer buffer = client.client_arax_buffer(strlen(input.c_str()) + 1);
 
     // Request accelerator
-    ACCEL accel = client.client_arax_accel_acquire_type(CPU);
+    Accel accel = client.client_arax_accel_acquire_type(CPU);
 
     client.client_arax_data_set(buffer, accel, input.c_str());
 
@@ -50,19 +49,26 @@ int main(int argc, char *argv[])
 
     client.client_arax_data_free(buffer);
 
+    // The buffers has been freed, this should throw a
+    // 'Buffer not found error'
     std::string data_get2(client.client_arax_data_get(buffer));
 
     std::cout << "Data gotten after data_free: " << data_get2 << "\n";
 
     client.client_arax_accel_release(accel);
 
-    // const uint64_t proc = client.client_arax_proc_register("Random");
+    Proc proc = client.client_arax_proc_get("noop");
 
-    // client.client_arax_proc_put(proc);
+    if (proc == 0) {
+        fprintf(stderr, "Failed to fetch process 'Random'\n");
+        server.shutdown();
+        server_thread.join();
+        exit(EXIT_FAILURE);
+    }
 
-    // std::cout << "ID of buffer: " << buffer << "\n";
-    // std::cout << "ID of proc: " << proc << "\n";
+    client.client_arax_proc_put(proc);
 
+    // Shutdown the server
     server.shutdown();
 
     // Terminate server thread

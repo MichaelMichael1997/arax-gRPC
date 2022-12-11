@@ -275,25 +275,25 @@ public:
      * Decrease ref counter of task
      *
      * @param ctx The Server Context
-     * @param req Task message holding the ID
+     * @param req TaskMessage message holding the ID
      * @param res Empty message
      *
      * @return The appropriate status code
      */
     grpc::Status Arax_task_free(grpc::ServerContext *ctx,
-      const arax::Task *req, google::protobuf::Empty *res) override;
+      const arax::TaskMessage *req, google::protobuf::Empty *res) override;
 
     /*
      * Wait for an issued task to complete or fail
      *
      * @param ctx The server context
-     * @param req Task message with the name of the task
-     * @param res Task message with the state of the task
+     * @param req TaskMessage message with the name of the task
+     * @param res TaskMessage message with the state of the task
      *
      * @return The appropriate status code
      */
     grpc::Status Arax_task_wait(grpc::ServerContext *ctx,
-      const arax::Task *req, arax::Task *res) override;
+      const arax::TaskMessage *req, arax::TaskMessage *res) override;
 };
 
 // ---------------------------------- Utility Functions --------------------------------------

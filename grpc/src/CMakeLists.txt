@@ -1,5 +1,3 @@
-# https://www.pragmaticlinux.com/2022/02/create-a-shared-library-in-c-with-cmake/
-
 # CMakeLists responsible to generate the C++ files from the protocol buffers
 # Also creates the Arax API Library
 
@@ -15,9 +13,6 @@ cmake_minimum_required(VERSION 3.13)
 project(arax_api VERSION 1.0.0)
 
 message(STATUS "${PROJECT_NAME} ${PROJECT_VERSION}")
-
-# Set DEBUG flag
-# set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DDEBUG")
 
 if(CMAKE_BUILD_TYPE MATCHES "[Dd][Ee][Bb][Uu][Gg]")
   message(STATUS "BUILD TYPE: DEBUG")
@@ -108,4 +103,3 @@ set_target_properties(${PROJECT_NAME} PROPERTIES PUBLIC_HEADER client/client.h)
 #    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 #    PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 #)
-

@@ -67,7 +67,7 @@ service Arax{
   /*
    * Decrease ref counter of task
    */
-   rpc Arax_task_free(Task) returns (google.protobuf.Empty){}
+   rpc Arax_task_free(TaskMessage) returns (google.protobuf.Empty){}
 
   /*
    * Issue a new arax_task
@@ -77,7 +77,7 @@ service Arax{
    /*
     * Wait for an issued task to complete or fail
     */
-    rpc Arax_task_wait(Task) returns (Task){}
+    rpc Arax_task_wait(TaskMessage) returns (TaskMessage){}
 }
 
 
@@ -102,7 +102,7 @@ message TaskRequest{
   uint64 out_buffer = 6;
 }
 
-message Task{
+message TaskMessage{
   uint64 task_id = 1;
   uint32 task_state = 2;
 }

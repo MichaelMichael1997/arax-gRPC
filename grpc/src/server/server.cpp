@@ -268,8 +268,8 @@ Status AraxServer::Arax_proc_get(ServerContext *ctx, const ProcRequest *req, Res
     arax_proc *proc = arax_proc_get(func.c_str());
 
     if (!proc) {
-        std::string error("Could not retrieve process '" + func
-          + "'. Maybe it has not been registered, or arax failed to retrieve it");
+        std::string error("-- Could not retrieve process '" + func
+          + "'. Maybe it has not been registered, or arax failed to retrieve it --");
         return Status(StatusCode::INVALID_ARGUMENT, error);
     }
 
@@ -286,8 +286,12 @@ Status AraxServer::Arax_proc_get(ServerContext *ctx, const ProcRequest *req, Res
     res->set_id(get_unique_id());
     insert_pair(arax_processes, res->id(), proc);
 
+    #ifdef DEBUG
+    assert(check_if_exists(arax_processes, res->id()));
+    #endif
+
     return Status::OK;
-}
+} // AraxServer::Arax_proc_get
 
 /*
  * Delete registered arax_proc pointer
@@ -599,12 +603,12 @@ Status AraxServer::Arax_task_issue(ServerContext *ctx, const TaskRequest *req, R
  * Decrease ref counter of task
  *
  * @param ctx The Server Context
- * @param req Task message holding the name of the task to be processed
+ * @param req TaskMessage message holding the name of the task to be processed
  * @param res Empty message
  *
  * @return The appropriate status code
  */
-Status AraxServer::Arax_task_free(ServerContext *ctx, const Task *req, Empty *res)
+Status AraxServer::Arax_task_free(ServerContext *ctx, const TaskMessage *req, Empty *res)
 {
     #ifdef DEBUG
     assert(ctx);
@@ -629,12 +633,12 @@ Status AraxServer::Arax_task_free(ServerContext *ctx, const Task *req, Empty *re
  * Wait for an issued task to complete or fail
  *
  * @param ctx The server context
- * @param req Task message with the name of the task
- * @param res Task message with the state of the task
+ * @param req TaskMessage message with the name of the task
+ * @param res TaskMessage message with the state of the task
  *
  * @return The appropriate status code
  */
-Status AraxServer::Arax_task_wait(ServerContext *ctx, const Task *req, Task *res)
+Status AraxServer::Arax_task_wait(ServerContext *ctx, const TaskMessage *req, TaskMessage *res)
 {
     uint64_t id = req->task_id();
 

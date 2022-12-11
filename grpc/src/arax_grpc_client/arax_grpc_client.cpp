@@ -1,4 +1,5 @@
 #include "arax_grpc_client.h"
+#include <cstdint>
 
 using grpc::Channel;
 using grpc::ClientContext;
@@ -510,7 +511,7 @@ uint64_t AraxClient::client_arax_task_issue(uint64_t accel, uint64_t proc, size_
 void AraxClient::client_arax_task_free(uint64_t task)
 {
     ClientContext ctx;
-    Task req;
+    TaskMessage req;
     Empty res;
 
     req.set_task_id(task);
@@ -548,8 +549,8 @@ void AraxClient::client_arax_task_free(uint64_t task)
 int AraxClient::client_arax_task_wait(uint64_t task)
 {
     ClientContext ctx;
-    Task req;
-    Task res;
+    TaskMessage req;
+    TaskMessage res;
 
     req.set_task_id(task);
 

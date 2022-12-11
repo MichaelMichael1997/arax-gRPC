@@ -33,11 +33,23 @@ list(APPEND CMAKE_PREFIX_PATH "../build")
 # Find the arax_api library
 find_library(ARAX_API arax_api)
 
-add_library(testlib EXCLUDE_FROM_ALL SHARED data.cpp)
-target_include_directories(testlib PRIVATE ${ARAX_CONTROLLER_PATH}/include)
-target_include_directories(testlib PRIVATE ../../../build/include)
-target_compile_definitions(testlib PRIVATE BUILD_SO)
-target_link_libraries(testlib arax)
+# add_library(testlib EXCLUDE_FROM_ALL SHARED data.cpp)
+# target_include_directories(testlib PRIVATE ${ARAX_CONTROLLER_PATH}/include)
+# target_include_directories(testlib PRIVATE ../../../build/include)
+# target_compile_definitions(testlib PRIVATE BUILD_SO)
+# target_link_libraries(testlib arax)
+
+# add_library(nooplib SHARED noop.cpp)
+# target_include_directories(nooplib PRIVATE ${ARAX_CONTROLLER_PATH}/include)
+# target_include_directories(nooplib PRIVATE ../../../build/include)
+# target_compile_definitions(nooplib PRIVATE BUILD_SO)
+# target_link_libraries(nooplib arax)
+
+add_executable(noop noop.cpp)
+target_include_directories(noop PRIVATE ../../../build/include)
+target_include_directories(noop PRIVATE ${ARAX_CONTROLLER_PATH}/include)
+target_compile_definitions(noop PRIVATE BUILD_MAIN)
+target_link_libraries(noop arax)
 
 # Create the executable and create link the library
 foreach(_target simple simple_grpc clean_arax data noop_grpc same_proc)
@@ -56,29 +68,5 @@ foreach(_target simple simple_grpc clean_arax data noop_grpc same_proc)
 			      ${_PROTOBUF_LIBPROTOBUF}
 			      ${ARAX_API}
 			     )
-  add_dependencies(${_target} testlib)
 endforeach()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

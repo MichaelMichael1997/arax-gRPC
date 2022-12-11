@@ -15,10 +15,10 @@ using grpc::Status;
 
 using namespace arax;
 
-#define BUFFER const uint64_t
-#define ACCEL  const uint64_t
-#define PROC   const uint64_t
-#define TASK   const uint64_t
+typedef const uint64_t Task;
+typedef const uint64_t Buffer;
+typedef const uint64_t Proc;
+typedef const uint64_t Accel;
 
 
 int main(int argc, char *argv[])
@@ -28,10 +28,10 @@ int main(int argc, char *argv[])
     std::string input("helloworld");
 
     // Request buffer
-    BUFFER buffer = client.client_arax_buffer(strlen(input.c_str()) + 1);
+    Buffer buffer = client.client_arax_buffer(strlen(input.c_str()) + 1);
 
     // Request accelerator
-    ACCEL accel = client.client_arax_accel_acquire_type(CPU);
+    Accel accel = client.client_arax_accel_acquire_type(CPU);
 
     client.client_arax_data_set(buffer, accel, input.c_str());
 

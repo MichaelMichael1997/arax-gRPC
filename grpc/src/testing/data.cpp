@@ -1,4 +1,5 @@
 #include "../arax_grpc_client/arax_grpc_client.h"
+#include "../server/server.h"
 
 #include <string.h>
 
@@ -11,10 +12,10 @@ using grpc::Status;
 
 using namespace arax;
 
-#define BUFFER const uint64_t
-#define ACCEL  const uint64_t
-#define PROC   const uint64_t
-#define TASK   const uint64_t
+typedef const uint64_t Task;
+typedef const uint64_t Buffer;
+typedef const uint64_t Proc;
+typedef const uint64_t Accel;
 
 void something_op(char *str)
 {
@@ -27,7 +28,6 @@ void something_op(char *str)
     return;
 }
 
-#ifdef BUILD_MAIN
 int main(int argc, char *argv[])
 {
     char *test = (char *) malloc(sizeof(char) * 5);
@@ -35,16 +35,14 @@ int main(int argc, char *argv[])
     strcpy(test, "test");
 
     something_op(test);
-
-    // Arax init and exit are called by the constructors and destructors respectively
     AraxClient client(grpc::CreateChannel("localhost:50051", grpc::InsecureChannelCredentials()));
 
     // Request buffer
-    BUFFER input  = client.client_arax_buffer(strlen(test) + 1);
-    BUFFER output = client.client_arax_buffer(strlen(test) + 1);
+    Buffer input  = client.client_arax_buffer(strlen(test) + 1);
+    Buffer output = client.client_arax_buffer(strlen(test) + 1);
 
     // Get registered process
-    PROC proc = client.client_arax_proc_get("something");
+    Proc proc = client.client_arax_proc_get("something");
 
     if (proc == 0) {
         free(test);
@@ -52,15 +50,12 @@ int main(int argc, char *argv[])
     }
 
     // request accelerator
-    ACCEL accel = client.client_arax_accel_acquire_type(CPU);
+    Accel accel = client.client_arax_accel_acquire_type(CPU);
 
+    // set the data
     client.client_arax_data_set(input, accel, test);
 
-    size_t data_size = client.client_arax_data_size(input);
-
-    printf("Size of data: %zu (should be %zu)\n", data_size, strlen(test) + 1);
-
-    TASK task = client.client_arax_task_issue(accel, proc, 1, input, 1, output);
+    Task task = client.client_arax_task_issue(accel, proc, 1, input, 1, output);
 
     client.client_arax_task_wait(task);
 
@@ -80,19 +75,3 @@ int main(int argc, char *argv[])
 
     return 0;
 } // main
-
-#endif /* BUILD_MAIN */
-
-#ifdef BUILD_SO
-
-arax_task_state_e something(arax_task_msg_s *msg)
-{
-    arax_task_mark_done(msg, task_completed);
-    return task_completed;
-}
-
-// ARAX_PROC_LIST_START()
-// ARAX_PROCEDURE("something", CPU, something, 0)
-// ARAX_PROCEDURE("something", CPU, something, 0)
-// ARAX_PROC_LIST_END()
-#endif /* BUILD_SO */
