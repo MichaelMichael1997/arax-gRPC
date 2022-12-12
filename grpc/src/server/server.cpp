@@ -55,7 +55,7 @@ AraxServer::AraxServer(const char *addr)
     }
     catch (std::runtime_error& e) {
         std::cerr << e.what();
-        exit(1);
+        exit(EXIT_FAILURE);
     }
 
     /* -- Unique ID counter -- */
