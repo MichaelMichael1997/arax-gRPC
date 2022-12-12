@@ -35,12 +35,12 @@ int main(int argc, char *argv[])
     }
 
     /* -- Server and client will run on the same process -- */
-    AraxServer server("localhost:50051");
+    // AraxServer server("localhost:50051");
 
     /* -- Create separate thread for server to run -- */
-    std::thread server_thread([&server](){
-      server.start_server();
-        });
+    // std::thread server_thread([&server](){
+    //   server.start_server();
+    //     });
 
     AraxClient client(grpc::CreateChannel("localhost:50051", grpc::InsecureChannelCredentials()));
 
@@ -49,8 +49,8 @@ int main(int argc, char *argv[])
 
     /* -- Failed to retrieve registered process -- */
     if (proc == 0) {
-        server.shutdown();
-        server_thread.join();
+        // server.shutdown();
+        // server_thread.join();
         exit(EXIT_FAILURE);
     }
 
@@ -81,8 +81,8 @@ int main(int argc, char *argv[])
     client.client_arax_proc_put(proc);
     client.client_arax_accel_release(accel);
 
-    server.shutdown();
-    server_thread.join();
+    // server.shutdown();
+    // server_thread.join();
 
     return strcmp(out.c_str(), temp);
 } // main

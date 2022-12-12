@@ -680,9 +680,9 @@ void RunServer(std::string address)
     server->Wait();
 }
 
-// int main()
-// {
-//     RunServer("0.0.0.0:50051");
+int main()
+{
+    RunServer("0.0.0.0:50051");
 
-//     return 0;
-// }
+    return 0;
+}

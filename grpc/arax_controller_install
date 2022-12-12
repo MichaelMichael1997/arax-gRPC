@@ -38,7 +38,7 @@ echo "shm_file $USER" > ~/.arax
 echo "shm_size 67108864" >> ~/.arax
 cat >cpu.json <<EOF
 {
-  "paths": ["arax/build/noop"],
+  "paths": ["testing"],
   "groups": {
     "1Gpu": {
       "accels": [

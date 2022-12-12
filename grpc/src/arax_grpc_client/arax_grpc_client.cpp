@@ -179,6 +179,8 @@ uint64_t AraxClient::client_arax_proc_get(const char *func_name)
         return 0;
     }
 
+    fprintf(stdout, "-- Process \'%s\' was acquired successfully\n", func_name);
+
     return res.id();
 }
 

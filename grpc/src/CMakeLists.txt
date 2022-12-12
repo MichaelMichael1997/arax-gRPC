@@ -92,6 +92,9 @@ set_target_properties(${PROJECT_NAME} PROPERTIES SOVERSION ${PROJECT_VERSION_MAJ
 # Set the public header property to the one with the actual API.
 set_target_properties(${PROJECT_NAME} PROPERTIES PUBLIC_HEADER client/client.h)
 
+# Build the tests
+add_subdirectory(testing)
+
 # Install the shared library system wide
 
 # TODO: Later maybe install library system wide

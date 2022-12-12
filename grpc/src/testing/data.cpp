@@ -24,8 +24,6 @@ void something_op(char *str)
         i % 2 == 0 ? tmp = '-' : tmp = '_';
         *(str + i)       = tmp;
     }
-
-    return;
 }
 
 int main(int argc, char *argv[])
@@ -35,11 +33,11 @@ int main(int argc, char *argv[])
     strcpy(test, "test");
 
     /* -- Server and client on the same process -- */
-    AraxServer server("localhost:50051");
-    /* -- New thread for the server to run -- */
-    std::thread server_thread([&server](){
-      server.start_server();
-        });
+    // AraxServer server("localhost:50051");
+    // /* -- New thread for the server to run -- */
+    // std::thread server_thread([&server](){
+    //   server.start_server();
+    // });
 
     AraxClient client(grpc::CreateChannel("localhost:50051", grpc::InsecureChannelCredentials()));
 
@@ -50,12 +48,12 @@ int main(int argc, char *argv[])
     /* -- Get registered process -- */
     Proc proc = client.client_arax_proc_get("noop");
 
-    if (proc == 0) {
-        free(test);
-        server.shutdown();
-        server_thread.join();
-        exit(1);
-    }
+    // if (proc == 0) {
+    //     free(test);
+    //     server.shutdown();
+    //     server_thread.join();
+    //     exit(1);
+    // }
 
     /* -- Request accelerator -- */
     Accel accel = client.client_arax_accel_acquire_type(CPU);
@@ -84,8 +82,8 @@ int main(int argc, char *argv[])
 
     free(test);
 
-    server.shutdown();
-    server_thread.join();
+    // server.shutdown();
+    // server_thread.join();
 
     return 0;
 } // main
