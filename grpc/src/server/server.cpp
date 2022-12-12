@@ -421,18 +421,30 @@ Status AraxServer::Arax_data_get(ServerContext *ctx, const ResourceID *req, Data
         return Status(StatusCode::INVALID_ARGUMENT, error_msg);
     }
 
+    size_t size = arax_data_size(buffers[id]);
+
     // Alocate memory for the data to be copied
-    const char *data = (char *) malloc(sizeof(arax_data_size(buffers[id])));
+    char *data = (char *) calloc(size, 1);
+
     if (!data) {
         std::string error("-- The system failed to allocate memory --");
         return Status(StatusCode::INTERNAL, error);
     }
 
-    arax_data_get(buffers[id], &data);
-    res->set_str_val(data);
+    /* -- Get the data from the buffer -- */
+    arax_data_get(buffers[id], data);
+
+    fprintf(stdout, "Data: %s\n", data);
+
+    if (!data) {
+        std::string error_msg("-- Failed to fetch the data from the buffer --\n");
+        return Status(StatusCode::INTERNAL, error_msg);
+    }
+
+    // res->set_str_val(data);
 
     return Status::OK;
-}
+} // AraxServer::Arax_data_get
 
 /*
  * Get size of the specified data
@@ -625,7 +637,7 @@ Status AraxServer::Arax_task_wait(ServerContext *ctx, const TaskMessage *req, Ta
 
 int main()
 {
-    /* -- Server startup happens in the constructor -- */
+    /* -- The server starts in the constructor -- */
     AraxServer server("localhost:50051");
 
     /* -- Server shutdown in the destructor -- */

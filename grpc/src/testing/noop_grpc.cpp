@@ -27,20 +27,14 @@ void noop_op(char *in, char *out, int l)
     out[c] = 0;
 }
 
+#ifdef BUILD_MAIN
+
 int main(int argc, char *argv[])
 {
     if (argc != 2) {
         fprintf(stderr, "Usage:\n\t%s <string>\n\n", argv[0]);
         return 0;
     }
-
-    /* -- Server and client will run on the same process -- */
-    // AraxServer server("localhost:50051");
-
-    /* -- Create separate thread for server to run -- */
-    // std::thread server_thread([&server](){
-    //   server.start_server();
-    //     });
 
     AraxClient client(grpc::CreateChannel("localhost:50051", grpc::InsecureChannelCredentials()));
 
@@ -49,8 +43,6 @@ int main(int argc, char *argv[])
 
     /* -- Failed to retrieve registered process -- */
     if (proc == 0) {
-        // server.shutdown();
-        // server_thread.join();
         exit(EXIT_FAILURE);
     }
 
@@ -68,9 +60,9 @@ int main(int argc, char *argv[])
 
     uint64_t state = client.client_arax_task_wait(task);
 
-    fprintf(stdout, "======================\n");
+    fprintf(stdout, "\n======================\n");
     fprintf(stdout, "-- 0: task_failed\n-- 1: task_issued\n-- 2: task_completed\n");
-    fprintf(stdout, "======================\n");
+    fprintf(stdout, "======================\n\n");
     fprintf(stdout, "Task state returned by client_arax_task_wait: %zu\n", state);
 
     if (state == 0) { /* -- task failed -- */
@@ -88,8 +80,33 @@ int main(int argc, char *argv[])
     client.client_arax_proc_put(proc);
     client.client_arax_accel_release(accel);
 
-    // server.shutdown();
-    // server_thread.join();
-
     return strcmp(out.c_str(), temp);
 } // main
+
+#endif /* -- ifdef BUILD_MAIN -- */
+
+
+#ifdef BUILD_SO
+
+#include <core/arax_data_private.h>
+#include <AraxLibUtilsCPU.h>
+
+arax_task_state_e noop(arax_task_msg_s *msg)
+{
+    int l = arax_data_size(msg->io[0]);
+
+    char *in  = (char *) arax_data_deref(msg->io[0]);
+    char *out = (char *) arax_data_deref(msg->io[1]);
+
+    noop_op(in, out, l);
+    arax_task_mark_done(msg, task_completed);
+
+    return task_completed;
+}
+
+ARAX_PROC_LIST_START()
+ARAX_PROCEDURE("noop", CPU, noop, 0)
+ARAX_PROCEDURE("noop", GPU, noop, 0)
+ARAX_PROC_LIST_END()
+
+#endif /* -- ifdef BUILD_SO -- */

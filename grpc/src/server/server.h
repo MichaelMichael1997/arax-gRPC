@@ -109,7 +109,6 @@ private:
      */
     void shutdown_server();
 
-
 public:
 
     /*
