@@ -41,7 +41,7 @@
 class AraxServer final : public arax::Arax::Service
 {
 private:
-    std::unique_ptr<grpc::Server> server;
+    std::unique_ptr<grpc::Server> server; // Unique pointer to the Server service
 
     uint64_t unique_id;  // Current value for the unique id to be given to a resource. Starts from 1.
     arax_pipe_s *pipe_s; // Arax pipe_s instance. Arax initialized in the Constructor
@@ -92,27 +92,11 @@ private:
      */
     uint64_t get_unique_id();
 
-public:
 
-    /*
-     * Constructors
-     */
-    AraxServer();
-
-    /*
-     * @param the address to connect
-     */
-    AraxServer(const char *addr);
-
-    /*
-     * Destructosrs
-     */
-    ~AraxServer();
+    /* ----- Server Start/Shutdown ------ */
 
     /*
      * Function to start the server
-     *
-     * @param addr The address to connect to
      *
      * @return void
      */
@@ -123,7 +107,20 @@ public:
      *
      * @return void
      */
-    void shutdown();
+    void shutdown_server();
+
+
+public:
+
+    /*
+     * @param the address to connect
+     */
+    AraxServer(const char *addr);
+
+    /*
+     * Destructosrs
+     */
+    ~AraxServer();
 
     /*
      * -------------------- Arax Services Implementations --------------------
@@ -296,15 +293,5 @@ public:
       const arax::TaskMessage *req, arax::TaskMessage *res) override;
 };
 
-// ---------------------------------- Utility Functions --------------------------------------
-
-/*
- * Function to begin running the server
- *
- * @return Void
- *
- * @param addr The server address, which will be represented by a std::string
- */
-void RunServer(std::string address);
 
 #endif /* #ifndef SERVER_H */

@@ -1,5 +1,5 @@
-# CMakeLists responsible to generate the C++ files from the protocol buffers
-# Also creates the Arax API Library
+# Generate the *.cc, *.h files from the protocol buffers, the Arax client API
+# as well as the tests
 
 # This CMakeLists is largely inspired by the gRPC C++ examples in the gRPC Github repository
 # https://github.com/grpc/grpc/blob/master/examples/cpp/route_guide/CMakeLists.txt
@@ -92,17 +92,8 @@ set_target_properties(${PROJECT_NAME} PROPERTIES SOVERSION ${PROJECT_VERSION_MAJ
 # Set the public header property to the one with the actual API.
 set_target_properties(${PROJECT_NAME} PROPERTIES PUBLIC_HEADER client/client.h)
 
-# Build the tests
+# -- Build the tests --
 add_subdirectory(testing)
 
-# Install the shared library system wide
 
 # TODO: Later maybe install library system wide
-# For access to standard installation directory variables (CMAKE_INSTALL_xDIR).
-#include(GNUInstallDirs)
-
-# Set library shared object and API header file to install.
-#install(TARGETS ${PROJECT_NAME}
-#    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-#    PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-#)

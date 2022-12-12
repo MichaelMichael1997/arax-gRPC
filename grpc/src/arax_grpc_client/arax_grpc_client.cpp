@@ -499,7 +499,6 @@ uint64_t AraxClient::client_arax_task_issue(uint64_t accel, uint64_t proc, size_
         return 0;
     }
 
-    std::cout << "-- Task was issued successfully!\n";
     return res.id();
 } // AraxClient::client_arax_task_issue
 

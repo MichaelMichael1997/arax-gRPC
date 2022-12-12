@@ -68,7 +68,14 @@ int main(int argc, char *argv[])
 
     uint64_t state = client.client_arax_task_wait(task);
 
-    fprintf(stdout, "Task state: %zu\n", state);
+    fprintf(stdout, "======================\n");
+    fprintf(stdout, "-- 0: task_failed\n-- 1: task_issued\n-- 2: task_completed\n");
+    fprintf(stdout, "======================\n");
+    fprintf(stdout, "Task state returned by client_arax_task_wait: %zu\n", state);
+
+    if (state == 0) { /* -- task failed -- */
+        fprintf(stderr, "Task failed\n");
+    }
 
     std::string out(client.client_arax_data_get(io[1]));
 

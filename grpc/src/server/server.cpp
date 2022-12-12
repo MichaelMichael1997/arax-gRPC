@@ -24,43 +24,7 @@ using namespace arax;
 #endif /* #ifdef __linux__ */
 
 /*
- * Constructor
- * Initialize the arax service
- */
-AraxServer::AraxServer()
-{
-    /* initialize arax */
-    std::cout << "-- Initializing Arax --\n";
-    try{
-        pipe_s = arax_init();
-
-        if (pipe_s == NULL) {
-            #ifdef __linux__
-            std::stringstream ss;
-            ss << ERROR_COL << "Arax failed to initialize, please try again later" << RESET_COL << "\n";
-            throw std::runtime_error(ss.str());
-            #else
-            throw std::runtime_error("Arax failed to initialize, please try again later\n");
-            #endif /* ifdef __linux__ */
-        } else {
-            #ifdef __linux__
-            std::stringstream ss;
-            ss << SUCCESS_COL << "Arax was initialized successfully" << RESET_COL << "\n";
-            std::cout << ss.str();
-            #else
-            std::cout << "Arax was initialized successfully\n";
-            #endif /* ifdef __linux__ */
-        }
-    }
-    catch (std::runtime_error& e) {
-        std::cerr << e.what();
-        exit(1);
-    }
-    unique_id = 1;
-}
-
-/*
- * Constructor to start the server
+ * Constructor to start the server and init arax
  *
  * @param addr The address to connect
  */
@@ -99,12 +63,14 @@ AraxServer::AraxServer(const char *addr)
 
     /* ----- Init the server ------ */
 
-    std::cout << "Starting the server ..\n";
     ServerBuilder builder;
 
     builder.AddListeningPort(addr, grpc::InsecureServerCredentials());
     builder.RegisterService(this);
     server = std::unique_ptr<Server>(builder.BuildAndStart());
+
+    /* -- Start the server -- */
+    start_server();
 }
 
 /*
@@ -113,17 +79,19 @@ AraxServer::AraxServer(const char *addr)
  */
 AraxServer::~AraxServer()
 {
-    /* Leave arax */
+    /* -- Exit arax -- */
     std::cout << "-- Exiting Arax --\n";
     arax_exit();
 
-    server->Shutdown();
+    /* -- Shutdown Server -- */
+    std::cout << "-- Shuting down --\n";
+    shutdown_server();
 }
+
+/* ----- Server Start/Shutdown ------ */
 
 /*
  * Function to start the server
- *
- * @param addr The address to connect to
  *
  * @return void
  */
@@ -137,7 +105,7 @@ void AraxServer::start_server()
  *
  * @return void
  */
-void AraxServer::shutdown()
+void AraxServer::shutdown_server()
 {
     server->Shutdown();
 }
@@ -655,34 +623,12 @@ Status AraxServer::Arax_task_wait(ServerContext *ctx, const TaskMessage *req, Ta
     return Status::OK;
 }
 
-// ---------------------------------- Utility Functions --------------------------------------
-
-/*
- * Function to begin running the server
- *
- * @return Void
- *
- * @param addr The server address, which will be represented by a std::string
- */
-void RunServer(std::string address)
-{
-    // Create the service instance
-    std::cout << "Starting the server ..\n";
-    AraxServer service;
-
-    ServerBuilder builder;
-
-    builder.AddListeningPort(address, grpc::InsecureServerCredentials());
-    builder.RegisterService(&service);
-    std::unique_ptr<Server> server(builder.BuildAndStart());
-
-    std::cout << "Server listening on " << address << "\n";
-    server->Wait();
-}
-
 int main()
 {
-    RunServer("0.0.0.0:50051");
+    /* -- Server startup happens in the constructor -- */
+    AraxServer server("localhost:50051");
+
+    /* -- Server shutdown in the destructor -- */
 
     return 0;
 }
