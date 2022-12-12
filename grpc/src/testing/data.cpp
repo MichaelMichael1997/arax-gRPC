@@ -34,37 +34,48 @@ int main(int argc, char *argv[])
 
     strcpy(test, "test");
 
-    something_op(test);
+    /* -- Server and client on the same process -- */
+    AraxServer server("localhost:50051");
+    /* -- New thread for the server to run -- */
+    std::thread server_thread([&server](){
+      server.start_server();
+        });
+
     AraxClient client(grpc::CreateChannel("localhost:50051", grpc::InsecureChannelCredentials()));
 
-    // Request buffer
+    /* -- Request buffer -- */
     Buffer input  = client.client_arax_buffer(strlen(test) + 1);
     Buffer output = client.client_arax_buffer(strlen(test) + 1);
 
-    // Get registered process
-    Proc proc = client.client_arax_proc_get("something");
+    /* -- Get registered process -- */
+    Proc proc = client.client_arax_proc_get("noop");
 
     if (proc == 0) {
         free(test);
+        server.shutdown();
+        server_thread.join();
         exit(1);
     }
 
-    // request accelerator
+    /* -- Request accelerator -- */
     Accel accel = client.client_arax_accel_acquire_type(CPU);
 
-    // set the data
+    /* -- Set the data -- */
     client.client_arax_data_set(input, accel, test);
 
+    /* -- Issue task -- */
     Task task = client.client_arax_task_issue(accel, proc, 1, input, 1, output);
 
-    client.client_arax_task_wait(task);
+    int task_state = client.client_arax_task_wait(task);
 
+    fprintf(stdout, "-- Task state: %d\n", task_state);
+
+    /* -- Get the data from the buffer after they are processed -- */
     const char *data = client.client_arax_data_get(output);
 
-    something_op(test);
+    fprintf(stdout, "Data received from client_arax_buffer_get : %s\n", data);
 
-    fprintf(stdout, "Data received from client_arax_buffer_get (Should be %s): %s\n", test, data);
-
+    /* -- Free the resources -- */
     client.client_arax_data_free(input);
     client.client_arax_data_free(output);
     client.client_arax_task_free(task);
@@ -72,6 +83,9 @@ int main(int argc, char *argv[])
     client.client_arax_proc_put(accel);
 
     free(test);
+
+    server.shutdown();
+    server_thread.join();
 
     return 0;
 } // main

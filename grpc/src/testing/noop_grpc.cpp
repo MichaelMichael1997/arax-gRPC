@@ -34,10 +34,12 @@ int main(int argc, char *argv[])
         return 0;
     }
 
-    // Server and client will run on the same process
+    /* -- Server and client will run on the same process -- */
     AraxServer server("localhost:50051");
+
+    /* -- Create separate thread for server to run -- */
     std::thread server_thread([&server](){
-      server.start_server("localhost:50051");
+      server.start_server();
         });
 
     AraxClient client(grpc::CreateChannel("localhost:50051", grpc::InsecureChannelCredentials()));
@@ -64,11 +66,11 @@ int main(int argc, char *argv[])
 
     Task task = client.client_arax_task_issue(accel, proc, 1, io[0], 1, io[1]);
 
-    // client.client_arax_task_wait(task);
+    uint64_t state = client.client_arax_task_wait(task);
+
+    fprintf(stdout, "Task state: %zu\n", state);
 
     std::string out(client.client_arax_data_get(io[1]));
-
-    // std::string out("Lala");
 
     fprintf(stderr, "Noop is   \'%s\'\n", out.c_str());
     noop_op(argv[1], temp, size);

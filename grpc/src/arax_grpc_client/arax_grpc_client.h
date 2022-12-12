@@ -61,6 +61,7 @@ public:
      *
      * @return The ID for the newly allocated buffer, or 0 if failed
      */
+    [[nodiscard("-- Arax Buffer identifier returned, but it was discarded --")]]
     uint64_t client_arax_buffer(size_t size);
 
     /*
@@ -70,6 +71,7 @@ public:
      *
      * @return The id of the arax_proc resource, or 0 on failure
      */
+    [[nodiscard("-- Arax Process identifier returned, but it was discarded --")]]
     uint64_t client_arax_proc_register(const char *func_name);
 
     /*
@@ -82,6 +84,7 @@ public:
      *
      * @return The ID of the resource, or 0 on failure
      */
+    [[nodiscard("-- Arax Process identifier returned, but it was discarded --")]]
     uint64_t client_arax_proc_get(const char *func_name);
 
     /*
@@ -100,6 +103,7 @@ public:
      *
      * @return The id of the acquire resource or 0 on failure
      */
+    [[nodiscard("-- Arax Accelerator identifier returned, but it was discarded --")]]
     uint64_t client_arax_accel_acquire_type(unsigned int type);
 
     /*
@@ -162,6 +166,7 @@ public:
      *
      * @return The id of the new task or 0 on failure
      */
+    [[nodiscard("-- Arax Task identifier returned, but it was discarded --")]]
     uint64_t client_arax_task_issue(uint64_t accel, uint64_t proc, size_t in_count, uint64_t in_buffer,
       size_t out_count, uint64_t out_buffer);
 

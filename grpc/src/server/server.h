@@ -116,7 +116,7 @@ public:
      *
      * @return void
      */
-    void start_server(const char *addr);
+    void start_server();
 
     /*
      * Function to shutdown the server

@@ -93,6 +93,8 @@ AraxServer::AraxServer(const char *addr)
         std::cerr << e.what();
         exit(1);
     }
+
+    /* -- Unique ID counter -- */
     unique_id = 1;
 
     /* ----- Init the server ------ */
@@ -125,9 +127,8 @@ AraxServer::~AraxServer()
  *
  * @return void
  */
-void AraxServer::start_server(const char *addr)
+void AraxServer::start_server()
 {
-    std::cout << "Server listening on " << addr << "\n";
     server->Wait();
 }
 

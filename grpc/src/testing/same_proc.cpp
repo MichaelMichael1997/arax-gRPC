@@ -28,7 +28,7 @@ int main(int argc, char *argv[])
     // Start a new server thread to listen to requests
     // Otherwise it will block the rest of the program
     std::thread server_thread([&server](){
-      server.start_server("localhost:50051");
+      server.start_server();
         });
 
     AraxClient client(grpc::CreateChannel("localhost:50051", grpc::InsecureChannelCredentials()));
