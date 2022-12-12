@@ -1,5 +1,4 @@
 #include "../arax_grpc_client/arax_grpc_client.h"
-#include "../server/server.h"
 
 using grpc::Channel;
 using grpc::ClientContext;

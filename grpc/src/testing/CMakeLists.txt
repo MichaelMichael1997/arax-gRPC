@@ -12,7 +12,7 @@ target_link_libraries(nooplib arax)
 message(STATUS "ARAX CONTROLLER PATH: ${ARAX_CONTROLLER_PATH}")
 
 # Create the executable and create link the library
-foreach(_target simple_grpc clean_arax data noop_grpc)
+foreach(_target simple_grpc clean_arax data noop_grpc stress_grpc)
 	add_executable(${_target}
 			"${_target}.cpp" 
 		      )

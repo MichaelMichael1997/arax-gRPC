@@ -354,7 +354,8 @@ Status AraxServer::Arax_accel_release(ServerContext *ctx, const ResourceID *req,
 
     if (arax_accels.find(id) != arax_accels.end()) { /* accel var with ID exists*/
         arax_accel_release(&arax_accels[id]);
-        arax_accels.erase(id);
+        auto it = arax_accels.find(id);
+        arax_accels.erase(it);
     } else {
         std::string error_msg("-- Accelerator with ID '" + std::to_string(id) + "' does not exist --");
         return Status(StatusCode::INVALID_ARGUMENT, error_msg);
@@ -426,6 +427,10 @@ Status AraxServer::Arax_data_get(ServerContext *ctx, const ResourceID *req, Data
     // Alocate memory for the data to be copied
     char *data = (char *) calloc(size, 1);
 
+    #ifdef DEBUG
+    assert(data);
+    #endif
+
     if (!data) {
         std::string error("-- The system failed to allocate memory --");
         return Status(StatusCode::INTERNAL, error);
@@ -434,14 +439,12 @@ Status AraxServer::Arax_data_get(ServerContext *ctx, const ResourceID *req, Data
     /* -- Get the data from the buffer -- */
     arax_data_get(buffers[id], data);
 
-    fprintf(stdout, "Data: %s\n", data);
-
     if (!data) {
         std::string error_msg("-- Failed to fetch the data from the buffer --\n");
         return Status(StatusCode::INTERNAL, error_msg);
     }
 
-    // res->set_str_val(data);
+    res->set_str_val("hello");
 
     return Status::OK;
 } // AraxServer::Arax_data_get
@@ -504,7 +507,8 @@ Status AraxServer::Arax_data_free(ServerContext *ctx, const ResourceID *req, Emp
     arax_data_free(buffers[id]);
 
     // Remove the buffer from the mapping
-    buffers.erase(id);
+    auto it = buffers.find(id);
+    buffers.erase(it);
 
     #ifdef DEBUG
     assert(!check_if_exists(buffers, id));
