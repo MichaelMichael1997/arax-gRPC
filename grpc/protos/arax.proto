@@ -116,6 +116,8 @@ message DataSet{
   // rather than having string str_val, we could use bytes
   // It all depends on the data that we can pass to buffers
   uint64 data_size = 4; // field used for arax_data_size
+
+  bytes value = 5;
 }
 
 message AccelRequest{

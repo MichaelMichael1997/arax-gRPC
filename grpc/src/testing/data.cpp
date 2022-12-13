@@ -74,8 +74,8 @@ int main(int argc, char *argv[])
 
 
     /* -- Get the data from the buffer after they are processed -- */
-    char *data = client.client_arax_data_get(output);
-    char *tmp  = (char *) calloc(size, 1);
+    std::string data = client.client_arax_data_get(output);
+    char *tmp        = (char *) calloc(size, 1);
 
     strcpy(tmp, argv[1]);
     something_op(tmp);

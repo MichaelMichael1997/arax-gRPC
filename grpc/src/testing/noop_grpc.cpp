@@ -77,7 +77,13 @@ int main(int argc, char *argv[])
     client.client_arax_proc_put(proc);
     client.client_arax_accel_release(accel);
 
-    return strcmp(out.c_str(), temp);
+    int cmp = strcmp(out.c_str(), temp);
+
+    if (cmp == 0) {
+        fprintf(stdout, "-- The two string are equal --\n");
+    }
+
+    return cmp;
 } // main
 
 #endif /* -- ifdef BUILD_MAIN -- */

@@ -134,7 +134,7 @@ public:
      *
      * @return The data
      */
-    char* client_arax_data_get(uint64_t buffer);
+    std::string client_arax_data_get(uint64_t buffer);
 
     /*
      * Return the size of the data of specified arax_data

@@ -33,7 +33,7 @@ void vac_per_thread(Proc proc, size_t ops, AraxClient *client)
 
         fprintf(stdout, "State return by the client_arax_task_wait: %d\n", state);
 
-        const char *output = client->client_arax_data_get(io[0]);
+        std::string output = client->client_arax_data_get(io[0]);
 
         std::cout << output << "\n";
 

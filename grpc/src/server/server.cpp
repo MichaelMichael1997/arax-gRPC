@@ -450,6 +450,8 @@ Status AraxServer::Arax_data_get(ServerContext *ctx, const ResourceID *req, Data
 
     res->set_str_val(data);
 
+    // res->set_value(data);
+
     return Status::OK;
 } // AraxServer::Arax_data_get
 

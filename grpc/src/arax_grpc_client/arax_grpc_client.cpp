@@ -347,7 +347,7 @@ void AraxClient::client_arax_data_set(uint64_t buffer, uint64_t accel, char *val
  *
  * @return The data
  */
-char * AraxClient::client_arax_data_get(uint64_t buffer)
+std::string AraxClient::client_arax_data_get(uint64_t buffer)
 {
     ClientContext ctx;
     ResourceID req;
@@ -374,7 +374,7 @@ char * AraxClient::client_arax_data_get(uint64_t buffer)
         return "";
     }
 
-    return (char *) res.str_val().c_str();
+    return res.str_val();
 }
 
 /*
