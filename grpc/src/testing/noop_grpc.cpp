@@ -33,7 +33,7 @@ int main(int argc, char *argv[])
         return 0;
     }
 
-    AraxClient client(grpc::CreateChannel("localhost:50051", grpc::InsecureChannelCredentials()));
+    AraxClient client("localhost:50051");
 
     Accel accel = client.client_arax_accel_acquire_type(CPU);
     Proc proc   = client.client_arax_proc_get("noop");

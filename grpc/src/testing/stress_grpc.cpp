@@ -47,7 +47,7 @@ void vac_per_thread(Proc proc, size_t ops, AraxClient *client)
 
 int main(int argc, char *argv[])
 {
-    AraxClient client(grpc::CreateChannel("localhost:50051", grpc::InsecureChannelCredentials()));
+    AraxClient client("localhost:50051");
 
     // arax_proc *proc = arax_proc_get("noop");
     Proc proc = client.client_arax_proc_get("noop");

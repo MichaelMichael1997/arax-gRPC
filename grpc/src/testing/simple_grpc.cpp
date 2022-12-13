@@ -22,7 +22,7 @@ typedef const uint64_t Accel;
 
 int main(int argc, char *argv[])
 {
-    AraxClient client(grpc::CreateChannel("localhost:50051", grpc::InsecureChannelCredentials()));
+    AraxClient client("localhost:50051");
 
     std::string input("helloworld");
 

@@ -31,7 +31,7 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
-    AraxClient client(grpc::CreateChannel("localhost:50051", grpc::InsecureChannelCredentials()));
+    AraxClient client("localhost:50051");
 
     size_t size = strlen(argv[1] + 1);
     /* -- Request buffer -- */

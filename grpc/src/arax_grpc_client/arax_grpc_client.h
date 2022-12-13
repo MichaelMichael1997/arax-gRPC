@@ -40,7 +40,7 @@ public:
      * Constructors
      *
      */
-    AraxClient(std::shared_ptr<grpc::Channel> channel);
+    AraxClient(const char *addr);
 
     /*
      * Destructors

@@ -11,15 +11,15 @@ using grpc::Status;
 using namespace arax;
 
 /*
-   This one contains only a clean arax call, in case it's needed
-   at some point, between testings
+ * This one contains only a clean arax call, in case it's needed
+ * at some point, between testings
  */
 
-int main(int argc, char* argv[]){
+int main(int argc, char *argv[])
+{
+    AraxClient client("localhost:50051");
 
-  AraxClient client(grpc::CreateChannel("localhost:50051", grpc::InsecureChannelCredentials()));
+    client.client_arax_clean();
 
-  client.client_arax_clean();
-
-  return 0;
+    return 0;
 }

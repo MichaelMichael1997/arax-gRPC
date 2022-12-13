@@ -7,6 +7,8 @@ using grpc::ClientReader;
 using grpc::ClientReaderWriter;
 using grpc::ClientWriter;
 using grpc::Status;
+using grpc::InsecureChannelCredentials;
+using grpc::CreateChannel;
 
 using google::protobuf::Empty;
 
@@ -24,7 +26,10 @@ using namespace arax;
 /*
  * Constructors
  */
-AraxClient::AraxClient(std::shared_ptr<Channel> channel) : stub_(Arax::NewStub(channel)){ }
+AraxClient::AraxClient(const char *addr)
+{
+    stub_ = Arax::NewStub(CreateChannel(addr, InsecureChannelCredentials()));
+}
 
 /*
  * Destructors
