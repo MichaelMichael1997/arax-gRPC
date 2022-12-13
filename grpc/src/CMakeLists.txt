@@ -19,6 +19,9 @@ if(CMAKE_BUILD_TYPE MATCHES "[Dd][Ee][Bb][Uu][Gg]")
   set(DEBUG 1)
 endif()
 
+# -- Add compile options --
+add_compile_options(-Wall -Wextra -pedantic -g)
+
 # We nedd to generate the c++ files from the protocol buffers first
 # Find the necessary packages
 find_package(arax CONFIG REQUIRED)

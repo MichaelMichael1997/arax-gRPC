@@ -9,8 +9,6 @@ using grpc::Status;
 
 using namespace arax;
 
-#define MAGIC 1337
-
 typedef const uint64_t Task;
 typedef const uint64_t Buffer;
 typedef const uint64_t Proc;

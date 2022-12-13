@@ -307,7 +307,7 @@ void AraxClient::client_arax_accel_release(uint64_t id)
  *
  * @return nothing
  */
-void AraxClient::client_arax_data_set(uint64_t buffer, uint64_t accel, const char *value)
+void AraxClient::client_arax_data_set(uint64_t buffer, uint64_t accel, char *value)
 {
     DataSet req;
     Empty res;
@@ -347,7 +347,7 @@ void AraxClient::client_arax_data_set(uint64_t buffer, uint64_t accel, const cha
  *
  * @return The data
  */
-const char * AraxClient::client_arax_data_get(uint64_t buffer)
+char * AraxClient::client_arax_data_get(uint64_t buffer)
 {
     ClientContext ctx;
     ResourceID req;
@@ -374,7 +374,7 @@ const char * AraxClient::client_arax_data_get(uint64_t buffer)
         return "";
     }
 
-    return res.str_val().c_str();
+    return (char *) res.str_val().c_str();
 }
 
 /*

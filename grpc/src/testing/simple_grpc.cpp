@@ -1,5 +1,4 @@
 #include "../arax_grpc_client/arax_grpc_client.h"
-#include <grpcpp/security/credentials.h>
 
 /*
  *  Simple test file to see if the functions were as intended,
@@ -33,7 +32,7 @@ int main(int argc, char *argv[])
     // Request accelerator
     Accel accel = client.client_arax_accel_acquire_type(CPU);
 
-    client.client_arax_data_set(buffer, accel, input.c_str());
+    client.client_arax_data_set(buffer, accel, (char *) input.c_str());
 
     std::string data_get(client.client_arax_data_get(buffer));
 

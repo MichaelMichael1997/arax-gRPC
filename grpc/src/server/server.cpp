@@ -169,7 +169,10 @@ grpc::Status AraxServer::Arax_buffer(grpc::ServerContext *ctx, const RequestBuff
     uint64_t id = get_unique_id();
 
     // Insert buffer to mapping
-    insert_pair(buffers, id, buffer);
+    if (!insert_pair(buffers, id, buffer)) {
+        std::string error("-- A buffer with ID '" + std::to_string(id) + "' already exists --");
+        return Status(StatusCode::INVALID_ARGUMENT, error);
+    }
 
     res->set_id(id);
     return Status::OK;
@@ -382,6 +385,7 @@ grpc::Status AraxServer::Arax_data_set(grpc::ServerContext *ctx, const arax::Dat
 
     uint64_t buffer = req->buffer();
     uint64_t accel  = req->accel();
+    char *in        = (char *) req->str_val().c_str();
 
     if (!check_if_exists(buffers, buffer)) {
         std::string error_msg("-- No buffer exists with ID'" + std::to_string(buffer) + "' --");
@@ -393,7 +397,7 @@ grpc::Status AraxServer::Arax_data_set(grpc::ServerContext *ctx, const arax::Dat
         return Status(StatusCode::INVALID_ARGUMENT, error_msg);
     }
 
-    arax_data_set(buffers[buffer], arax_accels[accel], &req->str_val());
+    arax_data_set(buffers[buffer], arax_accels[accel], in);
     return Status::OK;
 } // AraxServer::Arax_data_set
 
@@ -444,7 +448,7 @@ Status AraxServer::Arax_data_get(ServerContext *ctx, const ResourceID *req, Data
         return Status(StatusCode::INTERNAL, error_msg);
     }
 
-    res->set_str_val("hello");
+    res->set_str_val(data);
 
     return Status::OK;
 } // AraxServer::Arax_data_get
@@ -610,6 +614,8 @@ Status AraxServer::Arax_task_free(ServerContext *ctx, const TaskMessage *req, Em
     }
 
     arax_task_free(arax_tasks[task]);
+
+    /* -- TODO: See if we have to remove the task from the tasks map -- */
 
     return Status::OK;
 }

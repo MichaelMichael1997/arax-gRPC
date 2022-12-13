@@ -1,5 +1,4 @@
 #include "../arax_grpc_client/arax_grpc_client.h"
-#include "../server/server.h"
 
 #include <string.h>
 
@@ -32,13 +31,6 @@ int main(int argc, char *argv[])
 
     strcpy(test, "test");
 
-    /* -- Server and client on the same process -- */
-    // AraxServer server("localhost:50051");
-    // /* -- New thread for the server to run -- */
-    // std::thread server_thread([&server](){
-    //   server.start_server();
-    // });
-
     AraxClient client(grpc::CreateChannel("localhost:50051", grpc::InsecureChannelCredentials()));
 
     /* -- Request buffer -- */
@@ -48,12 +40,10 @@ int main(int argc, char *argv[])
     /* -- Get registered process -- */
     Proc proc = client.client_arax_proc_get("noop");
 
-    // if (proc == 0) {
-    //     free(test);
-    //     server.shutdown();
-    //     server_thread.join();
-    //     exit(1);
-    // }
+    if (proc == 0) {
+        free(test);
+        exit(1);
+    }
 
     /* -- Request accelerator -- */
     Accel accel = client.client_arax_accel_acquire_type(CPU);
@@ -81,9 +71,6 @@ int main(int argc, char *argv[])
     client.client_arax_proc_put(accel);
 
     free(test);
-
-    // server.shutdown();
-    // server_thread.join();
 
     return 0;
 } // main

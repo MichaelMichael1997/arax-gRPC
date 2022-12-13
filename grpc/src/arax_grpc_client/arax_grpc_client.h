@@ -125,7 +125,7 @@ public:
      *
      * @return nothing
      */
-    void client_arax_data_set(uint64_t buffer, uint64_t accel, const char *value);
+    void client_arax_data_set(uint64_t buffer, uint64_t accel, char *value);
 
     /*
      * Return the data that was set to an arax buffer
@@ -134,7 +134,7 @@ public:
      *
      * @return The data
      */
-    const char* client_arax_data_get(uint64_t buffer);
+    char* client_arax_data_get(uint64_t buffer);
 
     /*
      * Return the size of the data of specified arax_data
