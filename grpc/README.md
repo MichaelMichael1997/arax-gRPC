@@ -12,8 +12,8 @@
 
 # Building
 
-## **Client/Protos**
-  In order to build the Client API library and generate the C++ files from the protocol buffers, do the following, from inside the grpc/src directory:
+## **Client,Protos and Tests**
+  You can build the client API, generate the *.pb.h, *.pb.cc, files from the protocol buffers, as well as the tests/kernel ops by doing the following, from inside the grpc/src directory:
   ```
   rm -rf build
   mkdir build
@@ -29,18 +29,4 @@ To build the server go to the grpc/src/server directory and do the following:
   cd build
   cmake ..
   make
-  ``` 
-## **Tests**
-To build the tests, go to the grpc/src/testing directory and do the following:
   ```
-  rm -rf build
-  mkdir build
-  cd build
-  cmake ..
-  make
-  ``` 
-
-# TODOs
-1. Add server safe shutdown
-2. Maybe introduce timeouts?
-3. Implement noop and others with the gRPC client
