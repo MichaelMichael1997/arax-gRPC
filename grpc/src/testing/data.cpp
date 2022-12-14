@@ -18,7 +18,7 @@ typedef const uint64_t Accel;
 void something_op(char *str)
 {
     for (int i = 0; i < strlen(str); i++) {
-        i % 2 == 0 ? *(str + i) = '*' : *(str + i) = '_';
+        i % 2 == 0 ? *(str + i) = '-' : *(str + i) = '_';
     }
 }
 
@@ -33,7 +33,7 @@ int main(int argc, char *argv[])
 
     AraxClient client("localhost:50051");
 
-    size_t size = strlen(argv[1] + 1);
+    size_t size = strlen(argv[1]) + 1;
     /* -- Request buffer -- */
     Buffer input  = client.client_arax_buffer(size);
     Buffer output = client.client_arax_buffer(size);
@@ -80,7 +80,7 @@ int main(int argc, char *argv[])
     strcpy(tmp, argv[1]);
     something_op(tmp);
 
-    fprintf(stdout, "Data received : %s\n", data);
+    fprintf(stdout, "Data received : %s\n", data.c_str());
     fprintf(stdout, "Should be: %s\n", tmp);
 
     /* -- Free the resources -- */

@@ -67,6 +67,7 @@ AraxServer::AraxServer(const char *addr)
 
     builder.AddListeningPort(addr, grpc::InsecureServerCredentials());
     builder.RegisterService(this);
+    /* -- For async calls -- */
     server = std::unique_ptr<Server>(builder.BuildAndStart());
 
     /* -- Start the server -- */
