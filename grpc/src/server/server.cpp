@@ -386,7 +386,7 @@ grpc::Status AraxServer::Arax_data_set(grpc::ServerContext *ctx, const arax::Dat
 
     uint64_t buffer = req->buffer();
     uint64_t accel  = req->accel();
-    char *in        = (char *) req->str_val().c_str();
+    std::string data(req->data());
 
     if (!check_if_exists(buffers, buffer)) {
         std::string error_msg("-- No buffer exists with ID'" + std::to_string(buffer) + "' --");
@@ -398,7 +398,8 @@ grpc::Status AraxServer::Arax_data_set(grpc::ServerContext *ctx, const arax::Dat
         return Status(StatusCode::INVALID_ARGUMENT, error_msg);
     }
 
-    arax_data_set(buffers[buffer], arax_accels[accel], in);
+    /* -- Pass the pointer to the data as a string to arax, do the rest in the kernel -- */
+    arax_data_set(buffers[buffer], arax_accels[accel], data.c_str());
     return Status::OK;
 } // AraxServer::Arax_data_set
 
@@ -441,7 +442,7 @@ Status AraxServer::Arax_data_get(ServerContext *ctx, const ResourceID *req, Data
         return Status(StatusCode::INTERNAL, error);
     }
 
-    /* -- Get the data from the buffer -- */
+    // /* -- Get the data from the buffer -- */
     arax_data_get(buffers[id], data);
 
     if (!data) {
@@ -449,9 +450,8 @@ Status AraxServer::Arax_data_get(ServerContext *ctx, const ResourceID *req, Data
         return Status(StatusCode::INTERNAL, error_msg);
     }
 
-    res->set_str_val(data);
-
-    // res->set_value(data);
+    /* -- Convert the pointer address to string and return it -- */
+    res->set_data(data);
 
     return Status::OK;
 } // AraxServer::Arax_data_get
@@ -547,6 +547,8 @@ Status AraxServer::Arax_task_issue(ServerContext *ctx, const TaskRequest *req, R
     uint64_t out_buffer = req->out_buffer();
     size_t in_count     = req->in_count();
     size_t out_count    = req->out_count();
+    int host_init       = req->host_init();
+    size_t host_size    = req->host_size();
 
     // Check if valid names for data structures
     // Buffers
@@ -577,7 +579,7 @@ Status AraxServer::Arax_task_issue(ServerContext *ctx, const TaskRequest *req, R
     arax_accel *exec     = arax_accels[accel];
     arax_proc *process   = arax_processes[proc];
 
-    arax_task *task = arax_task_issue(exec, process, 0, 0, in_count, &input, out_count, &output);
+    arax_task *task = arax_task_issue(exec, process, &host_init, host_size, in_count, &input, out_count, &output);
 
     if (task == NULL) {
         std::string error_msg("-- Failed to issue task --");

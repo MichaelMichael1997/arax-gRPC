@@ -100,6 +100,8 @@ message TaskRequest{
   uint64 in_buffer = 4;
   uint32 out_count = 5;
   uint64 out_buffer = 6;
+  int32 host_init = 7;
+  uint64 host_size = 8;
 }
 
 message TaskMessage{
@@ -112,12 +114,8 @@ message TaskMessage{
 message DataSet{
   uint64 buffer = 1; 
   uint64 accel = 2;
-  string str_val = 3;
-  // rather than having string str_val, we could use bytes
-  // It all depends on the data that we can pass to buffers
-  uint64 data_size = 4; // field used for arax_data_size
-
-  bytes value = 5;
+  bytes data = 4; // pointer to data in string
+  uint64 data_size = 5; // field used for arax_data_size
 }
 
 message AccelRequest{

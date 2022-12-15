@@ -11,6 +11,7 @@ using grpc::InsecureChannelCredentials;
 using grpc::CreateChannel;
 
 using google::protobuf::Empty;
+using google::protobuf::Arena;
 
 using namespace arax;
 
@@ -307,12 +308,11 @@ void AraxClient::client_arax_accel_release(uint64_t id)
  *
  * @param buffer The ID of the buffer
  * @param accel The ID of the accelerator
- * @param value The string value to be passed to buffer
- * TODO: Change this depending on the possible values a buffer can get
+ * @param data Byte sequence of the serialized data
  *
  * @return nothing
  */
-void AraxClient::client_arax_data_set(uint64_t buffer, uint64_t accel, char *value)
+void AraxClient::client_arax_data_set(uint64_t buffer, uint64_t accel, std::string data)
 {
     DataSet req;
     Empty res;
@@ -320,7 +320,8 @@ void AraxClient::client_arax_data_set(uint64_t buffer, uint64_t accel, char *val
 
     req.set_buffer(buffer);
     req.set_accel(accel);
-    req.set_str_val(value);
+
+    req.set_data(data.data(), data.size());
 
     Status status = stub_->Arax_data_set(&ctx, req, &res);
 
@@ -341,6 +342,7 @@ void AraxClient::client_arax_data_set(uint64_t buffer, uint64_t accel, char *val
         return;
     }
 
+
     std::cout << "-- Data was set successfully\n";
     return;
 } // AraxClient::client_arax_set_data
@@ -350,7 +352,7 @@ void AraxClient::client_arax_data_set(uint64_t buffer, uint64_t accel, char *val
  *
  * @param buffer The ID of the buffer
  *
- * @return The data
+ * @return The serialized data or NULL on failure
  */
 std::string AraxClient::client_arax_data_get(uint64_t buffer)
 {
@@ -376,10 +378,10 @@ std::string AraxClient::client_arax_data_get(uint64_t buffer)
         std::cerr << status.error_message() << "\n";
         std::cerr << status.error_details() << "\n\n";
         #endif /* ifdef __linux__ */
-        return "";
+        return std::string("");
     }
 
-    return res.str_val();
+    return res.data();
 }
 
 /*
@@ -471,8 +473,8 @@ void AraxClient::client_arax_data_free(uint64_t id)
  *
  * @return The ID of the new task of 0 on failure
  */
-uint64_t AraxClient::client_arax_task_issue(uint64_t accel, uint64_t proc, size_t in_count, uint64_t in_buffer,
-  size_t out_count, uint64_t out_buffer)
+uint64_t AraxClient::client_arax_task_issue(uint64_t accel, uint64_t proc, int host_init, size_t host_size,
+  size_t in_count, uint64_t in_buffer, size_t out_count, uint64_t out_buffer)
 {
     TaskRequest req;
     ResourceID res;
@@ -484,6 +486,8 @@ uint64_t AraxClient::client_arax_task_issue(uint64_t accel, uint64_t proc, size_
     req.set_out_buffer(out_buffer);
     req.set_in_count(in_count);
     req.set_out_count(out_count);
+    req.set_host_init(host_init);
+    req.set_host_size(host_size);
 
     Status status = stub_->Arax_task_issue(&ctx, req, &res);
 

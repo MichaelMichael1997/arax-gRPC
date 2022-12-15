@@ -9,6 +9,8 @@ using grpc::Status;
 
 using namespace arax;
 
+#define MAGIC 1337
+
 typedef const uint64_t Task;
 typedef const uint64_t Buffer;
 typedef const uint64_t Proc;
@@ -44,6 +46,7 @@ int main(int argc, char *argv[])
     }
 
     size_t size = strlen(argv[1]) + 1;
+    int magic   = MAGIC;
     char *temp  = (char *) calloc(size, 1);
 
     Buffer io[2] = {
@@ -53,7 +56,7 @@ int main(int argc, char *argv[])
 
     client.client_arax_data_set(io[0], accel, argv[1]);
 
-    Task task = client.client_arax_task_issue(accel, proc, 1, io[0], 1, io[1]);
+    Task task = client.client_arax_task_issue(accel, proc, magic, 4, 1, io[0], 1, io[1]);
 
     uint64_t state = client.client_arax_task_wait(task);
 
@@ -66,7 +69,7 @@ int main(int argc, char *argv[])
         fprintf(stderr, "Task failed\n");
     }
 
-    std::string out(client.client_arax_data_get(io[1]));
+    std::string out = client.client_arax_data_get(io[1]);
 
     fprintf(stderr, "Noop is   \'%s\'\n", out.c_str());
     noop_op(argv[1], temp, size);
@@ -77,13 +80,11 @@ int main(int argc, char *argv[])
     client.client_arax_proc_put(proc);
     client.client_arax_accel_release(accel);
 
-    int cmp = strcmp(out.c_str(), temp);
-
-    if (cmp == 0) {
+    if (strcmp(out.c_str(), temp) == 0) {
         fprintf(stdout, "-- The two string are equal --\n");
     }
 
-    return cmp;
+    return 0;
 } // main
 
 #endif /* -- ifdef BUILD_MAIN -- */
@@ -100,6 +101,12 @@ arax_task_state_e noop(arax_task_msg_s *msg)
 
     char *in  = (char *) arax_data_deref(msg->io[0]);
     char *out = (char *) arax_data_deref(msg->io[1]);
+    int magic = *(int *) arax_task_host_data(msg, 4);
+
+    if (magic != MAGIC) {
+        throw std::runtime_error("Magic numbers dont match! (" + std::to_string(magic) + ") vs ("
+                + std::to_string(MAGIC) + ")\n");
+    }
 
     noop_op(in, out, l);
     arax_task_mark_done(msg, task_completed);

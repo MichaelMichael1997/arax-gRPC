@@ -5,6 +5,8 @@
 #include <thread>
 #include <iostream>
 
+#define MAGIC 1337
+
 typedef const uint64_t Task;
 typedef const uint64_t Buffer;
 typedef const uint64_t Proc;
@@ -20,6 +22,7 @@ void vac_per_thread(Proc proc, size_t ops, AraxClient *client)
         std::cerr << ops << "\n";
 
         size_t size  = strlen("Hello") + 1;
+        int magic    = MAGIC;
         Buffer io[2] = {
             client->client_arax_buffer(size),
             client->client_arax_buffer(size)
@@ -27,7 +30,7 @@ void vac_per_thread(Proc proc, size_t ops, AraxClient *client)
 
         client->client_arax_data_set(io[0], accel, "Hello");
 
-        Task task = client->client_arax_task_issue(accel, proc, 1, io[0], 1, io[1]);
+        Task task = client->client_arax_task_issue(accel, proc, magic, 4, 1, io[0], 1, io[1]);
 
         int state = client->client_arax_task_wait(task);
 
@@ -43,7 +46,7 @@ void vac_per_thread(Proc proc, size_t ops, AraxClient *client)
     }
 
     client->client_arax_accel_release(accel);
-}
+} // vac_per_thread
 
 int main(int argc, char *argv[])
 {

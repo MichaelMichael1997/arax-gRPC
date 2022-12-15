@@ -8,6 +8,8 @@ using grpc::ClientReaderWriter;
 using grpc::ClientWriter;
 using grpc::Status;
 
+#define MAGIC 10
+
 using namespace arax;
 
 typedef const uint64_t Task;
@@ -15,28 +17,50 @@ typedef const uint64_t Buffer;
 typedef const uint64_t Proc;
 typedef const uint64_t Accel;
 
-void something_op(char *str)
+
+/* -- Serialize integer -- */
+std::string serialize_int(const int num)
 {
-    for (int i = 0; i < strlen(str); i++) {
-        i % 2 == 0 ? *(str + i) = '-' : *(str + i) = '_';
-    }
+    std::ostringstream os;
+
+    os << num;
+
+    return os.str();
+}
+
+/* -- Deseiralize integer -- */
+int deserialize_int(std::string bytes)
+{
+    std::istringstream is(bytes);
+    int num = 0;
+
+    is >> num;
+
+    return num;
+}
+
+/* -- return number squared -- */
+int something_op(const int number)
+{
+    return number * number;
 }
 
 #ifdef BUILD_MAIN
-
 int main(int argc, char *argv[])
 {
-    if (argc != 2) {
-        fprintf(stderr, "Correct usage: %s <string_argument>\n\n", argv[0]);
-        exit(EXIT_FAILURE);
-    }
-
     AraxClient client("localhost:50051");
 
-    size_t size = strlen(argv[1]) + 1;
+    /* -- Set the data  -- */
+    int out   = 0;
+    int tmp   = MAGIC;
+    int magic = MAGIC;
+
+    /* -- Serialize them, get size and request buffers accordingly -- */
+    std::string in_data = serialize_int(tmp);
+
     /* -- Request buffer -- */
-    Buffer input  = client.client_arax_buffer(size);
-    Buffer output = client.client_arax_buffer(size);
+    Buffer input  = client.client_arax_buffer(sizeof(in_data));
+    Buffer output = client.client_arax_buffer(sizeof(in_data));
     /* -- Request accelerator -- */
     Accel accel = client.client_arax_accel_acquire_type(CPU);
 
@@ -48,20 +72,19 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
-    /* -- Set the data -- */
-    client.client_arax_data_set(input, accel, argv[1]);
+    client.client_arax_data_set(input, accel, in_data);
 
-    /* -- Issue task -- */
-    Task task = client.client_arax_task_issue(accel, proc, 1, input, 1, output);
+    // /* -- Issue task -- */
+    Task task = client.client_arax_task_issue(accel, proc, magic, 4, 1, input, 1, output);
 
     int task_state = client.client_arax_task_wait(task);
 
     fprintf(stdout, "\n======================\n");
-    fprintf(stdout, "-- 0: task_failed\n-- 1: task_issued\n-- 2: task_completed\n");
+    fprintf(stdout, "-- -1: gRPC_failed\n--  0: task_failed\n--  1: task_issued\n--  2: task_completed\n");
     fprintf(stdout, "======================\n\n");
     fprintf(stdout, "Task state returned by client_arax_task_wait: %d\n", task_state);
 
-    if (task_state == 0) { /* -- task failed -- */
+    if (task_state == 0 != task_state == -1) { /* -- task failed -- */
         fprintf(stderr, "Task failed\n");
         client.client_arax_data_free(input);
         client.client_arax_data_free(output);
@@ -72,16 +95,27 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
-
     /* -- Get the data from the buffer after they are processed -- */
     std::string data = client.client_arax_data_get(output);
-    char *tmp        = (char *) calloc(size, 1);
 
-    strcpy(tmp, argv[1]);
-    something_op(tmp);
+    if (data.empty()) { /* -- failed to retrieve data from buffer -- */
+        std::cout << "-- Failed to retrieve data from buffer --\n";
+        client.client_arax_data_free(input);
+        client.client_arax_data_free(output);
+        client.client_arax_task_free(task);
+        client.client_arax_proc_put(proc);
+        client.client_arax_accel_release(accel);
+        exit(EXIT_FAILURE);
+    }
 
-    fprintf(stdout, "Data received : %s\n", data.c_str());
-    fprintf(stdout, "Should be: %s\n", tmp);
+    /* -- Deserialize to get the integer value -- */
+    int output_number = deserialize_int(data);
+
+    /* -- Do the operation on the original to compare -- */
+    tmp = something_op(tmp);
+
+    fprintf(stdout, "Data received : %d\n", output_number);
+    fprintf(stdout, "Should be: %d\n", tmp);
 
     /* -- Free the resources -- */
     client.client_arax_data_free(input);
@@ -89,8 +123,6 @@ int main(int argc, char *argv[])
     client.client_arax_task_free(task);
     client.client_arax_proc_put(proc);
     client.client_arax_accel_release(accel);
-
-    free(tmp);
 
     return 0;
 } // main
@@ -104,18 +136,25 @@ int main(int argc, char *argv[])
 
 arax_task_state_e something(arax_task_msg_s *msg)
 {
-    int l1 = arax_data_size(msg->io[0]);
-    int l2 = arax_data_size(msg->io[1]);
-
-    if (l1 != l2) {
-        return task_failed;
-    }
+    /* -- Add Magic checking here -- */
 
     char *in  = (char *) arax_data_deref(msg->io[0]);
     char *out = (char *) arax_data_deref(msg->io[1]);
+    int magic = *(int *) arax_task_host_data(msg, 4);
 
-    strcpy(out, in);
-    something_op(out);
+    if (magic != MAGIC) {
+        throw std::runtime_error("Magic numbers don't match!\n");
+    }
+
+    /* -- Deserialize input -- */
+    int input = deserialize_int(std::string(in)); // --> This is ugly
+
+    input = something_op(input);
+
+    /* -- Copy result to output -- */
+    std::string output = serialize_int(input);
+
+    strcpy(out, output.c_str());
 
     arax_task_mark_done(msg, task_completed);
     return task_completed;

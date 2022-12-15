@@ -10,6 +10,7 @@
 #include <string>
 #include <thread>
 #include <exception>
+#include <cstddef>
 
 #include <grpc/grpc.h>
 #include <grpcpp/channel.h>
@@ -21,12 +22,13 @@
 #include "../generated/arax.grpc.pb.h"
 #include "../generated/arax.pb.h"
 
-// Arax header files
+// -- Arax header files --
 #include <arax.h>
 #include <arax_pipe.h>
 #include <arax_types.h>
-
 #include <core/arax_data.h>
+
+// -- We need to include the following headers to use boost serialization --
 
 // -------------------- Arax Client Class --------------------
 
@@ -120,19 +122,18 @@ public:
      *
      * @param buffer The ID of the buffer
      * @param accel The ID of the accelerator
-     * @param value The string value to be passed to buffer
-     * TODO: Change this depending on the possible values a buffer can get
+     * @param data Byte sequence of serialized data
      *
      * @return nothing
      */
-    void client_arax_data_set(uint64_t buffer, uint64_t accel, char *value);
+    void client_arax_data_set(uint64_t buffer, uint64_t accel, std::string data);
 
     /*
      * Return the data that was set to an arax buffer
      *
      * @param buffer The ID of the buffer
      *
-     * @return The data
+     * @return The serialized data or NULL on failure
      */
     std::string client_arax_data_get(uint64_t buffer);
 
@@ -167,7 +168,8 @@ public:
      * @return The id of the new task or 0 on failure
      */
     [[nodiscard("-- Arax Task identifier returned, but it was discarded --")]]
-    uint64_t client_arax_task_issue(uint64_t accel, uint64_t proc, size_t in_count, uint64_t in_buffer,
+    uint64_t client_arax_task_issue(uint64_t accel, uint64_t proc, int host_init, size_t host_size, size_t in_count,
+      uint64_t in_buffer,
       size_t out_count, uint64_t out_buffer);
 
     /*
