@@ -6,12 +6,12 @@ using grpc::ClientContext;
 using grpc::ClientReader;
 using grpc::ClientReaderWriter;
 using grpc::ClientWriter;
-using grpc::Status;
-using grpc::InsecureChannelCredentials;
 using grpc::CreateChannel;
+using grpc::InsecureChannelCredentials;
+using grpc::Status;
 
-using google::protobuf::Empty;
 using google::protobuf::Arena;
+using google::protobuf::Empty;
 
 using namespace arax;
 
@@ -23,6 +23,9 @@ using namespace arax;
 #define SUCCESS_COL "\033[1;37;38;5;10m"
 #define RESET_COL   "\033[0m"
 #endif /* #ifdef __linux__ */
+
+/* -- Max size for a protocol buffer message -- */
+#define MEGABYTE 1048576
 
 /*
  * Constructors
@@ -36,7 +39,6 @@ AraxClient::AraxClient(const char *addr)
  * Destructors
  */
 AraxClient::~AraxClient(){ }
-
 
 // -------------------- Arax Client Services --------------------
 
@@ -314,14 +316,27 @@ void AraxClient::client_arax_accel_release(uint64_t id)
  */
 void AraxClient::client_arax_data_set(uint64_t buffer, uint64_t accel, std::string data)
 {
+    /*
+     * Google suggests that protobuf messages over 2MB are not optimal.
+     * If the serialized data is larger than that, then this calls the
+     * client streaming version, which fragments the data and sends them sequentially.
+     * If they are not, then proceed normally
+     */
+    size_t bytes = data.size();
+
+    if (bytes > MEGABYTE) {
+        large_data_set(buffer, accel, data);
+        return;
+    }
+
     DataSet req;
     Empty res;
     ClientContext ctx;
 
     req.set_buffer(buffer);
     req.set_accel(accel);
-
-    req.set_data(data.data(), data.size());
+    req.set_data(data.data(), bytes);
+    req.set_data_size(bytes);
 
     Status status = stub_->Arax_data_set(&ctx, req, &res);
 
@@ -342,10 +357,9 @@ void AraxClient::client_arax_data_set(uint64_t buffer, uint64_t accel, std::stri
         return;
     }
 
-
     std::cout << "-- Data was set successfully\n";
     return;
-} // AraxClient::client_arax_set_data
+} // AraxClient::client_arax_data_set
 
 /*
  * Return the data that was set to an arax buffer
@@ -456,7 +470,6 @@ void AraxClient::client_arax_data_free(uint64_t id)
 
         return;
     }
-
 
     return;
 }
@@ -585,3 +598,86 @@ int AraxClient::client_arax_task_wait(uint64_t task)
 
     return res.task_state();
 }
+
+/*
+ * Function to fragment the data into messages
+ * less than 2MB in size.
+ * Uses client streaming to send them to the server
+ *
+ * @param buffer The buffer to assign the data
+ * @param accel  The accelerator identifier
+ * @param data   The data
+ */
+void AraxClient::large_data_set(uint64_t buffer, uint64_t accel, std::string data)
+{
+    ClientContext ctx;
+    Empty res;
+
+    size_t size = data.size();
+
+    /* -- Get the number of chunks, for debugging purposes -- */
+    // unsigned int chunks_num = ceil(float(size)/float(MEGABYTE));
+    // std::cout << "!!!!!!!!!Number of chunks to send: " << chunks_num << "\n";
+
+    /* -- write to stream for server -- */
+    std::unique_ptr<ClientWriter<DataSet> > writer(stub_->Arax_data_set_streaming(&ctx, &res));
+
+    /* -- Split the data into chunks of 1 MB each-- */
+    size_t current_sent = 0;
+    long int remaining  = size;
+    size_t it = 0;
+
+    // int iterations = 0;
+
+    while (current_sent < size) {
+        // fprintf(stderr, "It %zu, Current sent %zu, Remaining %ld Iterations %d\n", it, current_sent, remaining, iterations);
+        std::string chunk;
+        /* -- Less than 1 MEGABYTE remains -- */
+        if (remaining < MEGABYTE) {
+            chunk         = data.substr(it, remaining);
+            current_sent += remaining;
+            it       += remaining;
+            remaining = 0; /* -- no more to send -- */
+        } else {
+            chunk         = data.substr(it, MEGABYTE);
+            current_sent += MEGABYTE;
+            it += MEGABYTE;
+        }
+
+        DataSet d;
+        d.set_data(chunk);
+        d.set_data_size(data.size()); // --> The original data size
+        d.set_buffer(buffer);
+        d.set_accel(accel);
+
+        if (!writer->Write(d)) {
+            std::cerr << "-- Stream broke\n";
+            break;
+        }
+
+        // iterations += 1;
+    }
+
+    // std::cerr << "Loop iterations " << iterations << "\n";
+
+    writer->WritesDone();
+
+    Status status = writer->Finish();
+
+    if (!status.ok()) {
+        #ifdef __linux__
+        std::stringstream ss;
+        ss << ERROR_COL;
+        ss << "\nERROR: " << status.error_code() << "\n";
+        ss << status.error_message() << "\n";
+        ss << status.error_details() << "\n\n";
+        ss << RESET_COL;
+        std::cerr << ss.str();
+        #else
+        std::cout << "\nERROR: " << status.error_code() << "\n";
+        std::cout << status.error_message() << "\n";
+        std::cout << status.error_details() << "\n\n";
+        #endif /* ifdef __linux__ */
+        return;
+    }
+} // AraxClient::large_data_set

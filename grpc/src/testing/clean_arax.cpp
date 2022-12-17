@@ -19,7 +19,11 @@ int main(int argc, char *argv[])
 {
     AraxClient client("localhost:50051");
 
-    client.client_arax_clean();
+    if (arax_clean() == 0) {
+        fprintf(stderr, "Failed to clean arax\n");
+    }
+
+    // client.client_arax_clean();
 
     return 0;
 }

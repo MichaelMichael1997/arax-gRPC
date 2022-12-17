@@ -6,9 +6,9 @@ using grpc::ServerContext;
 using grpc::ServerReader;
 using grpc::ServerReaderWriter;
 using grpc::ServerWriter;
-using std::chrono::system_clock;
 using grpc::Status;
 using grpc::StatusCode;
+using std::chrono::system_clock;
 
 using google::protobuf::Empty;
 
@@ -32,7 +32,8 @@ AraxServer::AraxServer(const char *addr)
 {
     /*----- initialize arax -----*/
     std::cout << "-- Initializing Arax --\n";
-    try{
+    try
+    {
         pipe_s = arax_init();
 
         if (pipe_s == NULL) {
@@ -53,7 +54,8 @@ AraxServer::AraxServer(const char *addr)
             #endif /* ifdef __linux__ */
         }
     }
-    catch (std::runtime_error& e) {
+    catch (std::runtime_error &e)
+    {
         std::cerr << e.what();
         exit(EXIT_FAILURE);
     }
@@ -247,7 +249,7 @@ Status AraxServer::Arax_proc_get(ServerContext *ctx, const ProcRequest *req, Res
     }
 
     // Check if the retrieved process is already in the mapping
-    for (auto i: arax_processes) {
+    for (auto i : arax_processes) {
         if (i.second == proc) { // Process already exists in the mapping
             res->set_id(i.first);
             return Status::OK;
@@ -649,6 +651,65 @@ Status AraxServer::Arax_task_wait(ServerContext *ctx, const TaskMessage *req, Ta
     res->set_task_state(state);
     return Status::OK;
 }
+
+/* -- gRPC methods the client should not be able to call directly -- */
+
+/*
+ * Function to receive large data from the client
+ * via streaming
+ *
+ * @param ctx Server Context
+ * @param reader ServerReader instance to read the incoming stream of data
+ *               from the client
+ * @param res Empty message
+ */
+Status AraxServer::Arax_data_set_streaming(ServerContext *ctx, ServerReader<DataSet> *reader, Empty *res)
+{
+    #ifdef DEBUG
+    assert(ctx);
+    assert(reader);
+    assert(res);
+    #endif
+
+    std::string client_data("");
+    DataSet data;
+    unsigned int buffer = 0;
+    unsigned int accel  = 0;
+
+    /* -- Read the incoming data form the client -- */
+    while (reader->Read(&data)) {
+        std::cout << "Taking data server line 707";
+        client_data += std::string(data.data());
+    }
+    /* -- This probably shoud cause any issue, remember it if anything weird happens though -- */
+    buffer = data.buffer();
+    accel  = data.accel();
+    size_t data_size = data.data_size();
+    size_t megabytes = data_size >> 20;
+
+    fprintf(stderr, "Buffer %u, Accel %u, Data size %zu Data size in megabytes %zu", buffer, accel, data_size,
+      megabytes);
+
+    /* -- Check if all data arrived -- */
+    if (data_size != client_data.size()) {
+        std::string error_msg("-- Possible data loss --");
+        return Status(StatusCode::DATA_LOSS, error_msg);
+    }
+
+    if (!check_if_exists(buffers, buffer)) {
+        std::string error_msg("-- No buffer exists with ID'" + std::to_string(buffer) + "' --");
+        return Status(StatusCode::INVALID_ARGUMENT, error_msg);
+    }
+
+    if (!check_if_exists(arax_accels, accel)) {
+        std::string error_msg("-- No accelerator with ID'" + std::to_string(accel) + "' exists --");
+        return Status(StatusCode::INVALID_ARGUMENT, error_msg);
+    }
+
+    arax_data_set(buffers[buffer], arax_accels[accel], client_data.c_str());
+
+    return Status::OK;
+} // AraxServer::Arax_data_set_streaming
 
 int main()
 {

@@ -11,6 +11,7 @@
 #include <thread>
 #include <exception>
 #include <cstddef>
+#include <cmath>
 
 #include <grpc/grpc.h>
 #include <grpcpp/channel.h>
@@ -35,6 +36,17 @@
 class AraxClient {
 private:
     std::unique_ptr<arax::Arax::Stub> stub_; // Only member functions should have access to this
+
+    /*
+     * Function to fragment the data into messages
+     * less than 2MB in size.
+     * Uses client streaming to send them to the server
+     *
+     * @param buffer The buffer to assign the data
+     * @param accel  The accelerator identifier
+     * @param data   The data
+     */
+    void large_data_set(uint64_t buffer, uint64_t accel, std::string data);
 
 public:
 

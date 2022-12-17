@@ -78,6 +78,11 @@ service Arax{
     * Wait for an issued task to complete or fail
     */
     rpc Arax_task_wait(TaskMessage) returns (TaskMessage){}
+
+   /*
+    * Streaming version of data_set for large data
+    */
+    rpc Arax_data_set_streaming(stream DataSet) returns (google.protobuf.Empty){}
 }
 
 

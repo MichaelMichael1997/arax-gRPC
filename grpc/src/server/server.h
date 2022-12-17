@@ -35,7 +35,6 @@
 #include <arax_pipe.h>
 #include <core/arax_data.h>
 
-
 // ---------------------------------- Arax Service Class --------------------------------------
 
 class AraxServer final : public arax::Arax::Service
@@ -62,7 +61,8 @@ private:
      *
      * @return true if operation succesfull, false if the key already exists in the map
      */
-    template <typename T> bool insert_pair(std::map<uint64_t, T> &mapping, uint64_t ID, const T t)
+    template <typename T>
+    bool insert_pair(std::map<uint64_t, T> &mapping, uint64_t ID, const T t)
     {
         // check if name in mapping
         if (mapping.find(ID) == mapping.end()) { /* key does not exist in the mapping */
@@ -77,7 +77,8 @@ private:
      * If pair with key 'ID' exists, return true,
      * else return false
      */
-    template <typename T> bool check_if_exists(const std::map<uint64_t, T> map, uint64_t key)
+    template <typename T>
+    bool check_if_exists(const std::map<uint64_t, T> map, uint64_t key)
     {
         return map.find(key) != map.end();
     }
@@ -91,7 +92,6 @@ private:
      * @return uint64_t Unique ID
      */
     uint64_t get_unique_id();
-
 
     /* ----- Server Start/Shutdown ------ */
 
@@ -108,6 +108,21 @@ private:
      * @return void
      */
     void shutdown_server();
+
+
+    /* -- gRPC methods the client should not be able to call directly -- */
+
+    /*
+     * Function to receive large data from the client
+     * via streaming
+     *
+     * @param ctx Server Context
+     * @param reader ServerReader instance to read the incoming stream of data
+     *               from the client
+     * @param res Empty message
+     */
+    grpc::Status Arax_data_set_streaming(grpc::ServerContext *ctx,
+      grpc::ServerReader<arax::DataSet> *reader, google::protobuf::Empty *res) override;
 
 public:
 
@@ -291,6 +306,5 @@ public:
     grpc::Status Arax_task_wait(grpc::ServerContext *ctx,
       const arax::TaskMessage *req, arax::TaskMessage *res) override;
 };
-
 
 #endif /* #ifndef SERVER_H */

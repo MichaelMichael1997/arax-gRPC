@@ -98,5 +98,4 @@ set_target_properties(${PROJECT_NAME} PROPERTIES PUBLIC_HEADER client/client.h)
 # -- Build the tests --
 add_subdirectory(testing)
 
-
 # TODO: Later maybe install library system wide

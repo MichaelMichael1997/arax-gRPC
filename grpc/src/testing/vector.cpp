@@ -62,6 +62,11 @@ int main(int argc, char *argv[])
 
     std::vector<int> input_vec{ 1, 2, 3, 4, 5 };
 
+    /* -- To test if large inputs work -- */
+    for (int i = 0; i < 2600000; i++) {
+        input_vec.push_back(i);
+    }
+
     Accel accel = client.client_arax_accel_acquire_type(CPU);
     Proc proc   = client.client_arax_proc_get("vectorop");
 
@@ -73,7 +78,13 @@ int main(int argc, char *argv[])
     /* -- Serialize the vector input and get size -- */
     std::string vector_in = serialize_vector(input_vec);
 
-    size_t size = vector_in.size() + 1; // because, why not
+    size_t bytes     = vector_in.size();
+    size_t megabytes = bytes >> 20;
+
+    std::cout << "Size of input in bytes: " << bytes << "\n";
+    std::cout << "Size of input in megabytes: " << megabytes << "\n";
+
+    size_t size = vector_in.size();
     int magic   = MAGIC;
 
     Buffer io[2] = {
@@ -106,24 +117,31 @@ int main(int argc, char *argv[])
 
     std::vector<int> output_vec = deserialize_vector(vector_out);
 
-    fprintf(stderr, "Initial vector: \n");
-    for (const auto i : input_vec) {
-        std::cout << i << " ";
-    }
-    std::cout << "\n";
-
-    fprintf(stderr, "Output vector: \n");
-    for (const auto i : output_vec) {
-        std::cout << i << " ";
-    }
-    std::cout << "\n";
+    assert(input_vec.size() == output_vec.size());
 
     vector_op(input_vec);
-    fprintf(stderr, "What should have been returned: \n");
-    for (const auto i : input_vec) {
-        std::cout << i << " ";
+    for (int i = 0; i < input_vec.size(); i++) {
+        assert(input_vec.at(i) == output_vec.at(i));
     }
-    std::cout << "\n";
+
+    // fprintf(stderr, "Initial vector: \n");
+    // for (const auto i : input_vec) {
+    //     std::cout << i << " ";
+    // }
+    // std::cout << "\n";
+
+    // fprintf(stderr, "Output vector: \n");
+    // for (const auto i : output_vec) {
+    //     std::cout << i << " ";
+    // }
+    // std::cout << "\n";
+
+    // vector_op(input_vec);
+    // fprintf(stderr, "What should have been returned: \n");
+    // for (const auto i : input_vec) {
+    //     std::cout << i << " ";
+    // }
+    // std::cout << "\n";
 
     /* -- Free the resources -- */
     client.client_arax_data_free(io[0]);
