@@ -17,6 +17,8 @@ typedef const uint64_t Buffer;
 typedef const uint64_t Proc;
 typedef const uint64_t Accel;
 
+/* -------- THERE IS A BUG WITH THIS DEMO, WHERE IT WORKS FINE FOR LARGE INPUTS BUT NOT FOR SMALLER ONES IDK WHY FIX IT LATER ----- */
+
 /* -- Double every integer in the vector -- */
 void vector_op(std::vector<int>& vec)
 {
@@ -47,9 +49,14 @@ std::vector<int> deserialize_vector(const std::string& bytes)
 
     int i = 0;
 
+    int counter = 0;
+
     while (ss >> i) {
         retval.push_back(i);
+        counter++;
     }
+
+    fprintf(stderr, "Total iterations in deserialize vector: %d\n", counter);
 
     return retval;
 }
@@ -63,7 +70,7 @@ int main(int argc, char *argv[])
     std::vector<int> input_vec;
 
     /* -- To test if large inputs work -- */
-    for (int i = 0; i < 100000; i++) {
+    for (int i = 0; i < 2000000; i++) {
         input_vec.push_back(i);
     }
 
@@ -107,6 +114,10 @@ int main(int argc, char *argv[])
 
     std::string vector_out = client.client_arax_large_data_get(io[1]);
 
+    // std::string vector_out = client.client_arax_data_get(io[1]);
+
+    fprintf(stderr, "-- Original size data size %zu, Output data size %zu\n", vector_in.size(), vector_out.size());
+
     if (vector_out.empty()) {
         fprintf(stderr, "-- Failed to get data from buffer --\n");
         exit(EXIT_FAILURE);
@@ -115,8 +126,6 @@ int main(int argc, char *argv[])
     std::vector<int> output_vec = deserialize_vector(vector_out);
 
     /* -- Check that the two vectors are identical -- */
-    // assert(input_vec.size() == output_vec.size());
-
     if (input_vec.size() != output_vec.size()) {
         fprintf(stderr, "-- Vector sizes don't match (%u vs %u)\n", input_vec.size(), output_vec.size());
     }

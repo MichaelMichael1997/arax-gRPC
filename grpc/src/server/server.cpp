@@ -404,8 +404,10 @@ grpc::Status AraxServer::Arax_data_set(grpc::ServerContext *ctx, const arax::Dat
         return Status(StatusCode::INVALID_ARGUMENT, error_msg);
     }
 
-    /* -- Pass the pointer to the data as a string to arax, do the rest in the kernel -- */
+    /* -- Pass the data as a string to arax, do the rest in the kernel -- */
+    fprintf(stderr, "Before data set\n");
     arax_data_set(buffers[buffer], arax_accels[accel], data.c_str());
+    fprintf(stderr, "After data set\n");
     return Status::OK;
 } // AraxServer::Arax_data_set
 
@@ -426,6 +428,8 @@ Status AraxServer::Arax_data_get(ServerContext *ctx, const ResourceID *req, Data
     assert(res);
     #endif /* ifdef DEBUG */
 
+    fprintf(stderr, "In server data get with buffer ID %zu\n", req->id());
+
     uint64_t id = req->id();
 
     /* Check if buffer with that ID exists */
@@ -435,7 +439,6 @@ Status AraxServer::Arax_data_get(ServerContext *ctx, const ResourceID *req, Data
     }
 
     size_t size = arax_data_size(buffers[id]);
-
     // Alocate memory for the data to be copied
     char *data = (char *) calloc(size, 1);
 
@@ -462,7 +465,11 @@ Status AraxServer::Arax_data_get(ServerContext *ctx, const ResourceID *req, Data
     }
 
     /* -- Convert the pointer address to string and return it -- */
+    fprintf(stderr, "Before data get\n");
     res->set_data(data);
+    fprintf(stderr, "After data get\n");
+
+    free(data);
 
     return Status::OK;
 } // AraxServer::Arax_data_get
@@ -557,6 +564,8 @@ Status AraxServer::Arax_large_data_get(ServerContext *ctx, const ResourceID *req
     }
 
     fprintf(stderr, "Total iterations %d\n", iterations);
+
+    free(data);
 
     return Status::OK;
 } // AraxServer::Arax_large_data_get
@@ -812,6 +821,71 @@ Status AraxServer::Arax_data_set_streaming(ServerContext *ctx, ServerReader<Data
 
     return Status::OK;
 } // AraxServer::Arax_data_set_streaming
+
+/*
+ * Initialize a new arax_data_s object
+ *
+ * @param  ctx Server context
+ * @param  req Message with the requested size for the data
+ * @param  res Message with the unique ID of the resource
+ *
+ * @return The appropriate status code
+ */
+Status AraxServer::Arax_data_init(ServerContext *ctx, const AraxData *req, ResourceID *res)
+{
+    #ifdef DEBUG
+    assert(ctx);
+    assert(req);
+    assert(res);
+    #endif
+
+    size_t size       = req->size();
+    arax_data_s *data = arax_data_init(pipe_s, size);
+
+    if (!data) {
+        std::string error_msg("-- Failed to initialize arax_data_s object --");
+        res->set_id(0);
+        return Status(StatusCode::INTERNAL, error_msg);
+    }
+
+    res->set_id(get_unique_id());
+    insert_pair(data_s, res->id(), data);
+
+    return Status::OK;
+}
+
+/*
+ * Initialize a new arax_data_s object with an aligned buffer
+ *
+ * @param  ctx ServerContext
+ * @param  req Message with the requested size and allignment
+ * @param  res Message with the ID of the resource
+ *
+ * @return The appropriate status code
+ */
+Status AraxServer::Arax_data_init_aligned(ServerContext *ctx, const AraxData *req, ResourceID *res)
+{
+    #ifdef DEBUG
+    assert(ctx);
+    assert(req);
+    assert(res);
+    #endif
+
+    size_t size       = req->size();
+    size_t alignment  = req->alligned();
+    arax_data_s *data = arax_data_init_aligned(pipe_s, size, alignment);
+
+    if (!data) {
+        std::string error_msg("-- Failed to initialize arax_data_s object --");
+        res->set_id(0);
+        return Status(StatusCode::INTERNAL, error_msg);
+    }
+
+    res->set_id(get_unique_id());
+    insert_pair(data_s, res->id(), data);
+
+    return Status::OK;
+}
 
 int main()
 {

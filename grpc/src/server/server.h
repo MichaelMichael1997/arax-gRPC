@@ -55,6 +55,7 @@ private:
     std::map<uint64_t, arax_accel *> arax_accels;
     std::map<uint64_t, arax_task *> arax_tasks;
     std::map<uint64_t, arax_vaccel_s *> arax_vaccels;
+    std::map<uint64_t, arax_data_s *> data_s;
 
     /*
      * Template function to add a pair into an std::map
@@ -321,6 +322,30 @@ public:
      */
     grpc::Status Arax_task_wait(grpc::ServerContext *ctx,
       const arax::TaskMessage *req, arax::TaskMessage *res) override;
+
+    /*
+     * Initialize a new arax_data_s object
+     *
+     * @param  ctx Server context
+     * @param  req Message with the requested size for the data
+     * @param  res Message with the unique ID of the resource
+     *
+     * @return The appropriate status code
+     */
+    grpc::Status Arax_data_init(grpc::ServerContext *ctx,
+      const arax::AraxData *req, arax::ResourceID *res) override;
+
+    /*
+     * Initialize a new arax_data_s object with an aligned buffer
+     *
+     * @param  ctx ServerContext
+     * @param  req Message with the requested size and allignment
+     * @param  res Message with the ID of the resource
+     *
+     * @return The appropriate status code
+     */
+    grpc::Status Arax_data_init_aligned(grpc::ServerContext *ctx,
+      const arax::AraxData *req, arax::ResourceID *res) override;
 };
 
 #endif /* #ifndef SERVER_H */

@@ -318,7 +318,7 @@ void AraxClient::client_arax_accel_release(uint64_t id)
 void AraxClient::client_arax_data_set(uint64_t buffer, uint64_t accel, std::string data)
 {
     /*
-     * Google suggests that protobuf messages over 2MB are not optimal.
+     * Google suggests that protobuf messages over 1MB are not optimal.
      * If the serialized data is larger than that, then this calls the
      * client streaming version, which fragments the data and sends them sequentially.
      * If they are not, then proceed normally
@@ -334,9 +334,9 @@ void AraxClient::client_arax_data_set(uint64_t buffer, uint64_t accel, std::stri
     Empty res;
     ClientContext ctx;
 
-    /* -- Set a deadline -- */
+    /* -- Set a deadline (10s) -- */
     std::chrono::time_point<std::chrono::system_clock> deadline = std::chrono::system_clock::now()
-      + std::chrono::milliseconds(100);
+      + std::chrono::milliseconds(10000);
 
     ctx.set_deadline(deadline);
 

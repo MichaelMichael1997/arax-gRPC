@@ -88,6 +88,16 @@ service Arax{
     * Streaming version of data_set for large data
     */
     rpc Arax_data_set_streaming(stream DataSet) returns (google.protobuf.Empty){}
+
+   /*
+    * Initialize a new arax_data_s object
+    */
+    rpc Arax_data_init(AraxData) returns (ResourceID) {}
+
+   /*
+    * Initialize a new arax_data_s object with an alligned buffer
+    */
+    rpc Arax_data_init_aligned(AraxData) returns (ResourceID) {}
 }
 
 
@@ -119,13 +129,16 @@ message TaskMessage{
   uint32 task_state = 2;
 }
 
-// This is subject to changes/additions depending on the type of data that can be passed
-// to the arax buffer
 message DataSet{
   uint64 buffer = 1; 
   uint64 accel = 2;
   bytes data = 4; // pointer to data in string
   uint64 data_size = 5; // field used for arax_data_size
+}
+
+message AraxData{
+    uint64 size = 1;
+    uint64 alligned = 2;
 }
 
 message AccelRequest{
