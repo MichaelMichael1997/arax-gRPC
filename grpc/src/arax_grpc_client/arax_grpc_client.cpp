@@ -25,7 +25,8 @@ using namespace arax;
 #endif /* #ifdef __linux__ */
 
 /* -- Max size for a protocol buffer message -- */
-#define MEGABYTE 1048576
+// #define MAX_MSG 1048576 // --> 1 MB
+#define MAX_MSG 524288 // --> 0.5 MB
 
 /*
  * Constructors
@@ -324,7 +325,7 @@ void AraxClient::client_arax_data_set(uint64_t buffer, uint64_t accel, std::stri
      */
     size_t bytes = data.size();
 
-    if (bytes > MEGABYTE) {
+    if (bytes > MAX_MSG) {
         large_data_set(buffer, accel, data);
         return;
     }
@@ -332,6 +333,12 @@ void AraxClient::client_arax_data_set(uint64_t buffer, uint64_t accel, std::stri
     DataSet req;
     Empty res;
     ClientContext ctx;
+
+    /* -- Set a deadline -- */
+    std::chrono::time_point<std::chrono::system_clock> deadline = std::chrono::system_clock::now()
+      + std::chrono::milliseconds(100);
+
+    ctx.set_deadline(deadline);
 
     req.set_buffer(buffer);
     req.set_accel(accel);
@@ -374,6 +381,12 @@ std::string AraxClient::client_arax_data_get(uint64_t buffer)
     ResourceID req;
     DataSet res;
 
+    /* -- Set deadline -- */
+    std::chrono::time_point<std::chrono::system_clock> deadline = std::chrono::system_clock::now()
+      + std::chrono::milliseconds(10000); // -> 10s
+
+    ctx.set_deadline(deadline);
+
     req.set_id(buffer);
 
     Status status = stub_->Arax_data_get(&ctx, req, &res);
@@ -396,7 +409,59 @@ std::string AraxClient::client_arax_data_get(uint64_t buffer)
     }
 
     return res.data();
-}
+} // AraxClient::client_arax_data_get
+
+/*
+ * Similar to client_arax_data_get
+ * This one should be used when anticipating large data
+ *
+ * @param the ID of the buffer holding the data
+ *
+ * @return The serialized data or an empty string on failure
+ */
+std::string AraxClient::client_arax_large_data_get(uint64_t buffer)
+{
+    ClientContext ctx;
+    ResourceID req;
+
+    req.set_id(buffer);
+
+    /* -- TODO: Set deadline here -- */
+
+    std::unique_ptr<ClientReader<DataSet> > reader(stub_->Arax_large_data_get(&ctx, req));
+    std::string data("");
+    DataSet d;
+
+    /* -- Combine the segments -- */
+    while (reader->Read(&d)) {
+        data += d.data();
+    }
+
+    #ifdef DEBUG
+    assert(original_size == data.size());
+    #endif
+
+    Status status = reader->Finish();
+
+    if (!status.ok()) {
+        #ifdef __linux
+        std::stringstream ss;
+        ss << ERROR_COL;
+        ss << "\nERROR: " << status.error_code() << "\n";
+        ss << status.error_message() << "\n";
+        ss << status.error_details() << "\n\n";
+        ss << RESET_COL;
+        std::cerr << ss.str();
+        #else
+        std::cerr << "\nERROR: " << status.error_code() << "\n";
+        std::cerr << status.error_message() << "\n";
+        std::cerr << status.error_details() << "\n\n";
+        #endif /* ifdef __linux__ */
+        return std::string("");
+    }
+
+    return data;
+} // AraxClient::client_arax_large_data_get
 
 /*
  * Return the size of the data of specified arax_data
@@ -601,7 +666,7 @@ int AraxClient::client_arax_task_wait(uint64_t task)
 
 /*
  * Function to fragment the data into messages
- * less than 2MB in size.
+ * less than 1MB in size.
  * Uses client streaming to send them to the server
  *
  * @param buffer The buffer to assign the data
@@ -612,36 +677,40 @@ void AraxClient::large_data_set(uint64_t buffer, uint64_t accel, std::string dat
 {
     ClientContext ctx;
     Empty res;
-
     size_t size = data.size();
 
+    /* -- Set a deadline  relative to the size of input in kilobytes -- */
+    std::chrono::time_point<std::chrono::system_clock> deadline = std::chrono::system_clock::now()
+      + std::chrono::milliseconds(5000 + (size >> 10)); // --> 5 seconds plus extra for larger data
+
+    ctx.set_deadline(deadline);
+
     /* -- Get the number of chunks, for debugging purposes -- */
-    // unsigned int chunks_num = ceil(float(size)/float(MEGABYTE));
-    // std::cout << "!!!!!!!!!Number of chunks to send: " << chunks_num << "\n";
+    unsigned int chunks_num = ceil(float(size) / float(MAX_MSG));
+
+    std::cout << "-- Number of chunks to send: " << chunks_num << "--\n";
+    std::cout << "-- Data size in megabytes: " << (size >> 20) << "\n";
 
     /* -- write to stream for server -- */
     std::unique_ptr<ClientWriter<DataSet> > writer(stub_->Arax_data_set_streaming(&ctx, &res));
 
-    /* -- Split the data into chunks of 1 MB each-- */
-    size_t current_sent = 0;
-    long int remaining  = size;
-    size_t it = 0;
+    /* -- Split the data into chunks of 1 MAX_MSG each-- */
+    long int remaining = size;
+    size_t it      = 0;
+    int iterations = 0;
 
-    // int iterations = 0;
-
-    while (current_sent < size) {
-        // fprintf(stderr, "It %zu, Current sent %zu, Remaining %ld Iterations %d\n", it, current_sent, remaining, iterations);
+    fprintf(stderr, "It %zu, Current sent %zu, Remaining %ld Iterations %d\n", it, it, remaining, iterations);
+    while (it < size) {
         std::string chunk;
-        /* -- Less than 1 MEGABYTE remains -- */
-        if (remaining < MEGABYTE) {
-            chunk         = data.substr(it, remaining);
-            current_sent += remaining;
+        /* -- Less than 1 MAX_MSG remains -- */
+        if (remaining < MAX_MSG) {
+            chunk     = data.substr(it, remaining);
             it       += remaining;
             remaining = 0; /* -- no more to send -- */
         } else {
-            chunk         = data.substr(it, MEGABYTE);
-            current_sent += MEGABYTE;
-            it += MEGABYTE;
+            chunk      = data.substr(it, MAX_MSG);
+            it        += MAX_MSG;
+            remaining -= MAX_MSG;
         }
 
         DataSet d;
@@ -655,12 +724,15 @@ void AraxClient::large_data_set(uint64_t buffer, uint64_t accel, std::string dat
             break;
         }
 
-        // iterations += 1;
+        iterations += 1;
+        fprintf(stderr, "It %zu, Current sent %zu, Remaining %ld Iterations %d\n", it, it, remaining, iterations);
     }
 
     // std::cerr << "Loop iterations " << iterations << "\n";
 
     writer->WritesDone();
+
+    fprintf(stderr, "Finished streaming!\n");
 
     Status status = writer->Finish();
 

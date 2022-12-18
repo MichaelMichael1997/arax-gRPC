@@ -60,6 +60,11 @@ service Arax{
    rpc Arax_data_get(ResourceID) returns (DataSet) {}
 
   /*
+   * Same as Arax_data_get, but used when anticipating large output (over 1 MB in size)
+   */
+   rpc Arax_large_data_get(ResourceID) returns (stream DataSet){}
+
+  /*
    * Mark data for deletion
    */
    rpc Arax_data_free(ResourceID) returns (google.protobuf.Empty) {}

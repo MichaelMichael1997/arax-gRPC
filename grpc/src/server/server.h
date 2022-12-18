@@ -11,6 +11,7 @@
 #include <typeinfo>
 #include <string.h>
 #include <map>
+#include <thread>
 
 #include <grpc/grpc.h>
 #include <grpcpp/security/server_credentials.h>
@@ -42,7 +43,10 @@ class AraxServer final : public arax::Arax::Service
 private:
     std::unique_ptr<grpc::Server> server; // Unique pointer to the Server service
 
-    uint64_t unique_id;  // Current value for the unique id to be given to a resource. Starts from 1.
+    std::thread server_thread; // --> Thread running the server wait method
+
+    uint64_t unique_id; // Current value for the unique id to be given to a resource. Starts from 1.
+
     arax_pipe_s *pipe_s; // Arax pipe_s instance. Arax initialized in the Constructor
 
     /* Mappings to store resources, with key a unique uint64_t ID */
@@ -93,23 +97,6 @@ private:
      */
     uint64_t get_unique_id();
 
-    /* ----- Server Start/Shutdown ------ */
-
-    /*
-     * Function to start the server
-     *
-     * @return void
-     */
-    void start_server();
-
-    /*
-     * Function to shutdown the server
-     *
-     * @return void
-     */
-    void shutdown_server();
-
-
     /* -- gRPC methods the client should not be able to call directly -- */
 
     /*
@@ -135,6 +122,22 @@ public:
      * Destructosrs
      */
     ~AraxServer();
+
+    /* ----- Server Start/Shutdown ------ */
+
+    /*
+     * Function to start the server
+     *
+     * @return void
+     */
+    void start_server();
+
+    /*
+     * Function to shutdown the server
+     *
+     * @return void
+     */
+    void shutdown_server();
 
     /*
      * -------------------- Arax Services Implementations --------------------
@@ -247,6 +250,19 @@ public:
      */
     grpc::Status Arax_data_get(grpc::ServerContext *ctx,
       const arax::ResourceID *req, arax::DataSet *res) override;
+
+    /*
+     * Similar to Arax_data_get
+     * This one should be used for returned data that are over 1 MB in size
+     *
+     * @param ctx    Server Context
+     * @param req    ResourceID message holding the ID of the buffer
+     * @param writer ServerWriter instance to write to stream
+     *
+     * @return The appropriate status code
+     */
+    grpc::Status Arax_large_data_get(grpc::ServerContext *ctx,
+      const arax::ResourceID *req, grpc::ServerWriter<arax::DataSet> *writer) override;
 
     /*
      * Get size of the specified data

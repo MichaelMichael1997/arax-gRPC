@@ -28,7 +28,7 @@ void vector_op(std::vector<int>& vec)
 }
 
 /* -- Serialize vector into a string sequence of bytes -- */
-std::string serialize_vector(const std::vector<int> vec)
+std::string serialize_vector(const std::vector<int>& vec)
 {
     std::ostringstream ss;
 
@@ -39,7 +39,7 @@ std::string serialize_vector(const std::vector<int> vec)
     return ss.str();
 }
 
-std::vector<int> deserialize_vector(const std::string bytes)
+std::vector<int> deserialize_vector(const std::string& bytes)
 {
     std::vector<int> retval;
 
@@ -60,10 +60,10 @@ int main(int argc, char *argv[])
 {
     AraxClient client("localhost:50051");
 
-    std::vector<int> input_vec{ 1, 2, 3, 4, 5 };
+    std::vector<int> input_vec;
 
     /* -- To test if large inputs work -- */
-    for (int i = 0; i < 2600000; i++) {
+    for (int i = 0; i < 100000; i++) {
         input_vec.push_back(i);
     }
 
@@ -78,14 +78,11 @@ int main(int argc, char *argv[])
     /* -- Serialize the vector input and get size -- */
     std::string vector_in = serialize_vector(input_vec);
 
-    size_t bytes     = vector_in.size();
-    size_t megabytes = bytes >> 20;
-
-    std::cout << "Size of input in bytes: " << bytes << "\n";
-    std::cout << "Size of input in megabytes: " << megabytes << "\n";
-
     size_t size = vector_in.size();
     int magic   = MAGIC;
+
+    fprintf(stderr, "-- Size of serialized data in bytes: %zu\n", size);
+    fprintf(stderr, "-- Size of serialized data in megabytes: %zu\n", size >> 20);
 
     Buffer io[2] = {
         client.client_arax_buffer(size),
@@ -108,7 +105,7 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
-    std::string vector_out = client.client_arax_data_get(io[1]);
+    std::string vector_out = client.client_arax_large_data_get(io[1]);
 
     if (vector_out.empty()) {
         fprintf(stderr, "-- Failed to get data from buffer --\n");
@@ -117,31 +114,17 @@ int main(int argc, char *argv[])
 
     std::vector<int> output_vec = deserialize_vector(vector_out);
 
-    assert(input_vec.size() == output_vec.size());
+    /* -- Check that the two vectors are identical -- */
+    // assert(input_vec.size() == output_vec.size());
 
-    vector_op(input_vec);
-    for (int i = 0; i < input_vec.size(); i++) {
-        assert(input_vec.at(i) == output_vec.at(i));
+    if (input_vec.size() != output_vec.size()) {
+        fprintf(stderr, "-- Vector sizes don't match (%u vs %u)\n", input_vec.size(), output_vec.size());
     }
 
-    // fprintf(stderr, "Initial vector: \n");
-    // for (const auto i : input_vec) {
-    //     std::cout << i << " ";
-    // }
-    // std::cout << "\n";
-
-    // fprintf(stderr, "Output vector: \n");
-    // for (const auto i : output_vec) {
-    //     std::cout << i << " ";
-    // }
-    // std::cout << "\n";
-
     // vector_op(input_vec);
-    // fprintf(stderr, "What should have been returned: \n");
-    // for (const auto i : input_vec) {
-    //     std::cout << i << " ";
+    // for (int i = 0; i < input_vec.size(); i++) {
+    //     assert(input_vec.at(i) == output_vec.at(i));
     // }
-    // std::cout << "\n";
 
     /* -- Free the resources -- */
     client.client_arax_data_free(io[0]);

@@ -145,9 +145,19 @@ public:
      *
      * @param buffer The ID of the buffer
      *
-     * @return The serialized data or NULL on failure
+     * @return The serialized data or empty string on failure
      */
     std::string client_arax_data_get(uint64_t buffer);
+
+    /*
+     * Similar to client_arax_data_get
+     * This one should be used when anticipating large data
+     *
+     * @param the ID of the buffer holding the data
+     *
+     * @return The serialized data or an empty string on failure
+     */
+    std::string client_arax_large_data_get(uint64_t buffer);
 
     /*
      * Return the size of the data of specified arax_data

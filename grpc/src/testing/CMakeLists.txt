@@ -26,8 +26,7 @@ target_link_libraries(vectorlib arax)
 
 
 # Create the executable and create link the library
-# -- Temporarily removed some tests to make build time faster !!! RESTORE THEM LATER !!! ---
-foreach(_target vector)
+foreach(_target vector data noop_grpc)
 	add_executable(${_target}
 			"${_target}.cpp" 
 		      )

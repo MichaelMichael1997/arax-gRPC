@@ -23,6 +23,8 @@ using namespace arax;
 #define RESET_COL   "\033[0m"
 #endif /* #ifdef __linux__ */
 
+#define MAX_MSG 524288
+
 /*
  * Constructor to start the server and init arax
  *
@@ -73,7 +75,9 @@ AraxServer::AraxServer(const char *addr)
     server = std::unique_ptr<Server>(builder.BuildAndStart());
 
     /* -- Start the server -- */
-    start_server();
+    server_thread = std::thread([this](){
+        this->start_server();
+    });
 }
 
 /*
@@ -88,7 +92,6 @@ AraxServer::~AraxServer()
 
     /* -- Shutdown Server -- */
     std::cout << "-- Shuting down --\n";
-    shutdown_server();
 }
 
 /* ----- Server Start/Shutdown ------ */
@@ -111,6 +114,7 @@ void AraxServer::start_server()
 void AraxServer::shutdown_server()
 {
     server->Shutdown();
+    server_thread.join();
 }
 
 /*
@@ -447,6 +451,11 @@ Status AraxServer::Arax_data_get(ServerContext *ctx, const ResourceID *req, Data
     // /* -- Get the data from the buffer -- */
     arax_data_get(buffers[id], data);
 
+    if (ctx->IsCancelled()) {
+        std::string error_msg("-- Deadline exceeded, or Client cancelled. Abandoning --");
+        return Status(StatusCode::CANCELLED, error_msg);
+    }
+
     if (!data) {
         std::string error_msg("-- Failed to fetch the data from the buffer --\n");
         return Status(StatusCode::INTERNAL, error_msg);
@@ -457,6 +466,100 @@ Status AraxServer::Arax_data_get(ServerContext *ctx, const ResourceID *req, Data
 
     return Status::OK;
 } // AraxServer::Arax_data_get
+
+/*
+ * Similar to Arax_data_get
+ * This one should be used for returned data that are over 1 MB in size
+ *
+ * @param ctx    Server Context
+ * @param req    ResourceID message holding the ID of the buffer
+ * @param writer ServerWriter instance to write to stream
+ *
+ * @return The appropriate status code
+ */
+Status AraxServer::Arax_large_data_get(ServerContext *ctx, const ResourceID *req, ServerWriter<DataSet> *writer)
+{
+    #ifdef DEBUG
+    assert(ctx);
+    assert(req);
+    assert(writer);
+    #endif
+
+    uint64_t id = req->id();
+
+    /* Check if buffer with that ID exists */
+    if (!check_if_exists(buffers, id)) {
+        std::string error_msg("-- No buffer with ID '" + std::to_string(id) + "' exists --");
+        return Status(StatusCode::INVALID_ARGUMENT, error_msg);
+    }
+
+    size_t size = arax_data_size(buffers[id]);
+
+    // Alocate memory for the data to be copied
+    char *data = (char *) calloc(size, 1);
+
+    #ifdef DEBUG
+    assert(data);
+    #endif
+
+    if (!data) {
+        std::string error("-- The system failed to allocate memory --");
+        return Status(StatusCode::INTERNAL, error);
+    }
+
+    /* -- Get the data from the buffer -- */
+    arax_data_get(buffers[id], data);
+
+    if (!data) {
+        std::string error_msg("-- Failed to fetch the data from the buffer --\n");
+        return Status(StatusCode::INTERNAL, error_msg);
+    }
+
+    if (ctx->IsCancelled()) {
+        std::string error_msg("-- Deadline exceeded, or Client cancelled. Abandoning --");
+        return Status(StatusCode::CANCELLED, error_msg);
+    }
+
+    std::string data_str(data);
+
+    /* -- Split the data into chunks of 1 MAX_MSG each-- */
+    size = data_str.size();
+    long int remaining = size;
+    size_t it      = 0;
+    int iterations = 0;
+
+    fprintf(stderr, "It %zu, Current sent %zu, Remaining %ld Iterations %d\n", it, it, remaining, iterations);
+    while (it < size) {
+        std::string chunk;
+        /* -- Less than 1 MAX_MSG remains -- */
+        if (remaining < MAX_MSG) {
+            chunk     = data_str.substr(it, remaining);
+            it       += remaining;
+            remaining = 0; /* -- no more to send -- */
+        } else {
+            chunk      = data_str.substr(it, MAX_MSG);
+            it        += MAX_MSG;
+            remaining -= MAX_MSG;
+        }
+
+        DataSet d;
+        d.set_data(chunk);
+        d.set_data_size(size); // --> The original data size
+
+        if (!writer->Write(d)) {
+            std::cerr << "-- Stream broke\n";
+            std::string error_msg("-- Stream broke --");
+            return Status(StatusCode::DATA_LOSS, error_msg);
+        }
+
+        iterations += 1;
+        fprintf(stderr, "It %zu, Current sent %zu, Remaining %ld Iterations %d\n", it, it, remaining, iterations);
+    }
+
+    fprintf(stderr, "Total iterations %d\n", iterations);
+
+    return Status::OK;
+} // AraxServer::Arax_large_data_get
 
 /*
  * Get size of the specified data
@@ -678,7 +781,6 @@ Status AraxServer::Arax_data_set_streaming(ServerContext *ctx, ServerReader<Data
 
     /* -- Read the incoming data form the client -- */
     while (reader->Read(&data)) {
-        std::cout << "Taking data server line 707";
         client_data += std::string(data.data());
     }
     /* -- This probably shoud cause any issue, remember it if anything weird happens though -- */
@@ -687,7 +789,7 @@ Status AraxServer::Arax_data_set_streaming(ServerContext *ctx, ServerReader<Data
     size_t data_size = data.data_size();
     size_t megabytes = data_size >> 20;
 
-    fprintf(stderr, "Buffer %u, Accel %u, Data size %zu Data size in megabytes %zu", buffer, accel, data_size,
+    fprintf(stderr, "Buffer %u, Accel %u, Data size %zu Data size in megabytes %zu\n", buffer, accel, data_size,
       megabytes);
 
     /* -- Check if all data arrived -- */
@@ -716,7 +818,17 @@ int main()
     /* -- The server starts in the constructor -- */
     AraxServer server("localhost:50051");
 
-    /* -- Server shutdown in the destructor -- */
+    fprintf(stderr, "-- Type \'exit\' to shutdown the server\n");
+    std::string input("");
+
+    while (std::cin >> input) {
+        if (input == "exit") {
+            server.shutdown_server();
+            break;
+        }
+    }
+
+    /* -- Arax exit in the destructor -- */
 
     return 0;
 }
