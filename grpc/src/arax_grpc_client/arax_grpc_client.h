@@ -211,6 +211,27 @@ public:
      * @return The state of the task or -1 on failure
      */
     int client_arax_task_wait(uint64_t task);
+
+    /*
+     * Initialize arax_data_s object
+     *
+     * @param  size The size for the object
+     *
+     * @return The ID of the resource or 0 on failure
+     */
+    [[nodiscard("-- Arax data_s identifier returned, but it was discarded --")]]
+    uint64_t client_arax_data_init(size_t size);
+
+    /*
+     * Initialize arax_data_s object with aligned buffer
+     *
+     * @param  size  The size for the object
+     * @param  align Alignment of buffer in bytes, power of two
+     *
+     * @return The ID of the resource or 0 on failure
+     */
+    [[nodiscard("-- Arax data_s identifier returned, but it was discarded --")]]
+    uint64_t client_arax_data_init_aligned(size_t size, size_t align);
 }; /* class AraxClient */
 
 

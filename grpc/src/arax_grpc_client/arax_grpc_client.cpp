@@ -753,3 +753,79 @@ void AraxClient::large_data_set(uint64_t buffer, uint64_t accel, std::string dat
         return;
     }
 } // AraxClient::large_data_set
+
+/*
+ * Initialize arax_data_s object
+ *
+ * @param  size The size for the object
+ *
+ * @return The ID of the resource or 0 on failure
+ */
+uint64_t AraxClient::client_arax_data_init(size_t size)
+{
+    ClientContext ctx;
+    AraxData req;
+    ResourceID res;
+
+    req.set_size(size);
+
+    Status status = stub_->Arax_data_init(&ctx, req, &res);
+
+    if (!status.ok()) {
+        #ifdef __linux__
+        std::stringstream ss;
+        ss << ERROR_COL;
+        ss << "\nERROR: " << status.error_code() << "\n";
+        ss << status.error_message() << "\n";
+        ss << status.error_details() << "\n\n";
+        ss << RESET_COL;
+        std::cerr << ss.str();
+        #else
+        std::cout << "\nERROR: " << status.error_code() << "\n";
+        std::cout << status.error_message() << "\n";
+        std::cout << status.error_details() << "\n\n";
+        #endif /* ifdef __linux__ */
+        return 0;
+    }
+
+    return res.id();
+}
+
+/*
+ * Initialize arax_data_s object with aligned buffer
+ *
+ * @param  size  The size for the object
+ * @param  align Alignment of buffer in bytes, power of two
+ *
+ * @return The ID of the resource or 0 on failure
+ */
+uint64_t AraxClient::client_arax_data_init_aligned(size_t size, size_t align)
+{
+    ClientContext ctx;
+    AraxData req;
+    ResourceID res;
+
+    req.set_size(size);
+    req.set_alligned(align);
+
+    Status status = stub_->Arax_data_init_aligned(&ctx, req, &res);
+
+    if (!status.ok()) {
+        #ifdef __linux__
+        std::stringstream ss;
+        ss << ERROR_COL;
+        ss << "\nERROR: " << status.error_code() << "\n";
+        ss << status.error_message() << "\n";
+        ss << status.error_details() << "\n\n";
+        ss << RESET_COL;
+        std::cerr << ss.str();
+        #else
+        std::cout << "\nERROR: " << status.error_code() << "\n";
+        std::cout << status.error_message() << "\n";
+        std::cout << status.error_details() << "\n\n";
+        #endif /* ifdef __linux__ */
+        return 0;
+    }
+
+    return res.id();
+}
