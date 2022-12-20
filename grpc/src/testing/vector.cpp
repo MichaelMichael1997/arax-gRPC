@@ -17,10 +17,10 @@ using namespace arax;
 
 #define MAGIC 1337
 
-typedef const uint64_t Task;
-typedef const uint64_t Buffer;
-typedef const uint64_t Proc;
-typedef const uint64_t Accel;
+typedef uint64_t Task;
+typedef uint64_t Buffer;
+typedef uint64_t Proc;
+typedef uint64_t Accel;
 
 /* -------- THERE IS A BUG WITH THIS DEMO, WHERE IT WORKS FINE FOR LARGE INPUTS BUT NOT FOR SMALLER ONES IDK WHY FIX IT LATER ----- */
 
@@ -103,7 +103,7 @@ int main(int argc, char *argv[])
 
     client.client_arax_data_set(io[0], accel, vector_in);
 
-    Task task = client.client_arax_task_issue(accel, proc, 0, 0, 1, io[0], 1, io[1]);
+    Task task = client.client_arax_task_issue(accel, proc, 0, 0, 1, io, 1, io + 1);
 
     uint64_t state = client.client_arax_task_wait(task);
 

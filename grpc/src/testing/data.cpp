@@ -17,10 +17,10 @@ using grpc::Status;
 
 using namespace arax;
 
-typedef const uint64_t Task;
-typedef const uint64_t Buffer;
-typedef const uint64_t Proc;
-typedef const uint64_t Accel;
+typedef uint64_t Task;
+typedef uint64_t Buffer;
+typedef uint64_t Proc;
+typedef uint64_t Accel;
 
 
 /* -- Serialize integer -- */
@@ -64,8 +64,11 @@ int main(int argc, char *argv[])
     std::string in_data = serialize_int(tmp);
 
     /* -- Request buffer -- */
-    Buffer input  = client.client_arax_buffer(sizeof(in_data));
-    Buffer output = client.client_arax_buffer(sizeof(in_data));
+    Buffer io[2] = {
+        client.client_arax_buffer(sizeof(in_data)),
+        client.client_arax_buffer(sizeof(in_data))
+    };
+
     /* -- Request accelerator -- */
     Accel accel = client.client_arax_accel_acquire_type(CPU);
 
@@ -77,10 +80,10 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
-    client.client_arax_data_set(input, accel, in_data);
+    client.client_arax_data_set(io[0], accel, in_data);
 
     // /* -- Issue task -- */
-    Task task = client.client_arax_task_issue(accel, proc, 0, 0, 1, input, 1, output);
+    Task task = client.client_arax_task_issue(accel, proc, 0, 0, 1, io, 1, io + 1);
 
     int task_state = client.client_arax_task_wait(task);
 
@@ -91,8 +94,8 @@ int main(int argc, char *argv[])
 
     if (task_state == 0 != task_state == -1) { /* -- task failed -- */
         fprintf(stderr, "Task failed\n");
-        client.client_arax_data_free(input);
-        client.client_arax_data_free(output);
+        client.client_arax_data_free(io[0]);
+        client.client_arax_data_free(io[1]);
         client.client_arax_task_free(task);
         client.client_arax_proc_put(proc);
         client.client_arax_accel_release(accel);
@@ -101,12 +104,12 @@ int main(int argc, char *argv[])
     }
 
     /* -- Get the data from the buffer after they are processed -- */
-    std::string data = client.client_arax_data_get(output);
+    std::string data = client.client_arax_data_get(io[1]);
 
     if (data.empty()) { /* -- failed to retrieve data from buffer -- */
         std::cout << "-- Failed to retrieve data from buffer --\n";
-        client.client_arax_data_free(input);
-        client.client_arax_data_free(output);
+        client.client_arax_data_free(io[0]);
+        client.client_arax_data_free(io[1]);
         client.client_arax_task_free(task);
         client.client_arax_proc_put(proc);
         client.client_arax_accel_release(accel);
@@ -123,8 +126,8 @@ int main(int argc, char *argv[])
     fprintf(stdout, "Should be: %d\n", tmp);
 
     /* -- Free the resources -- */
-    client.client_arax_data_free(input);
-    client.client_arax_data_free(output);
+    client.client_arax_data_free(io[0]);
+    client.client_arax_data_free(io[1]);
     client.client_arax_task_free(task);
     client.client_arax_proc_put(proc);
     client.client_arax_accel_release(accel);

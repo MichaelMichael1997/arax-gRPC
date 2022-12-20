@@ -552,20 +552,38 @@ void AraxClient::client_arax_data_free(uint64_t id)
  * @return The ID of the new task of 0 on failure
  */
 uint64_t AraxClient::client_arax_task_issue(uint64_t accel, uint64_t proc, char *host_init, size_t host_size,
-  size_t in_count, uint64_t in_buffer, size_t out_count, uint64_t out_buffer)
+  size_t in_count, uint64_t *in_buffer, size_t out_count, uint64_t *out_buffer)
 {
     TaskRequest req;
     ResourceID res;
     ClientContext ctx;
 
+    if (in_buffer == 0 || out_buffer == 0) {
+        fprintf(stderr, "-- Pass valid arrays of Buffer identifiers --\n");
+        return 0;
+    }
+
     req.set_accel(accel);
     req.set_proc(proc);
-    req.set_in_buffer(in_buffer);
-    req.set_out_buffer(out_buffer);
     req.set_in_count(in_count);
     req.set_out_count(out_count);
     req.set_host_init(host_init);
     req.set_host_size(host_size);
+
+    /* pass the in buffers */
+    for (size_t i = 0; i < in_count; i++) {
+        req.add_in_buffer(*(in_buffer + i));
+    }
+
+    /* pass the out buffers */
+    for (size_t i = 0; i < out_count; i++) {
+        req.add_out_buffer(*(out_buffer + i));
+    }
+
+    for (const auto& i : req.in_buffer()) {
+        std::cout << i << " ";
+    }
+    std::cout << '\n';
 
     Status status = stub_->Arax_task_issue(&ctx, req, &res);
 
