@@ -10,9 +10,12 @@
 cmake_minimum_required(VERSION 3.13)
 
 # project name
-project(arax_api VERSION 1.0.0)
+project(g_arax VERSION 1.0.0)
 
 message(STATUS "${PROJECT_NAME} ${PROJECT_VERSION}")
+
+set(ARAX ../../build)
+set(CONTROLLER ../../controller/build)
 
 if(CMAKE_BUILD_TYPE MATCHES "[Dd][Ee][Bb][Uu][Gg]")
   message(STATUS "BUILD TYPE: DEBUG")
@@ -25,6 +28,13 @@ add_compile_options(-Wall -Wextra -pedantic -g)
 # We nedd to generate the c++ files from the protocol buffers first
 # Find the necessary packages
 find_package(arax CONFIG REQUIRED)
+find_library(ARAX_LIB arax_st)
+
+message(STATUS "FOUND ARAX LIB ${ARAX_LIB}")
+
+if(arax_FOUND)
+    message(STATUS "Found libarax")
+endif()
 
 set(protobuf_MODULE_COMPATIBLE TRUE)
 find_package(Protobuf CONFIG REQUIRED)
@@ -70,30 +80,42 @@ add_custom_command(
   )
   
 # Include the build/include Arax directory in the build path
-include_directories(../../build/include)
+# include_directories(../../build/include)
+# include_directories(../../build/src)
+# include_directories(../../controller/build/include)
+# include_directories(../../controller/src)
+
 
 # Declare the library target
 add_library(${PROJECT_NAME} SHARED
 	    arax_grpc_client/arax_grpc_client.cpp
-	    arax_grpc_client/arax_grpc_client.h
-	    generated/arax.grpc.pb.h
 	    generated/arax.grpc.pb.cc
-	    generated/arax.pb.h
 	    generated/arax.pb.cc
+        ${ARAX}/src
+        ${CONTROLLER}/src
+
 	   )
 
 # Configure the directories to search for header files
 target_include_directories(${PROJECT_NAME} PRIVATE arax_grpc_client)
 target_include_directories(${PROJECT_NAME} PRIVATE generated)
+target_include_directories(${PROJECT_NAME} PRIVATE ${ARAX}/build/include)
+target_include_directories(${PROJECT_NAME} PRIVATE ${CONTROLLER}/build/include)
+target_link_libraries(${PROJECT_NAME} PRIVATE ${ARAX_LIB}
+        ${_REFLECTION}
+        ${_GRPC_GRPCPP}
+        ${_PROTOBUF_LIBPROTOBUF}
+        )
+target_link_libraries(${PROJECT_NAME} PRIVATE arax)
 
 # Set the version properly
-set_target_properties(${PROJECT_NAME} PROPERTIES VERSION ${PROJECT_VERSION})
+# set_target_properties(${PROJECT_NAME} PROPERTIES VERSION ${PROJECT_VERSION})
 
 # Set the shared object version property to the project's major version
-set_target_properties(${PROJECT_NAME} PROPERTIES SOVERSION ${PROJECT_VERSION_MAJOR})
+# set_target_properties(${PROJECT_NAME} PROPERTIES SOVERSION ${PROJECT_VERSION_MAJOR})
 
 # Set the public header property to the one with the actual API.
-set_target_properties(${PROJECT_NAME} PROPERTIES PUBLIC_HEADER client/client.h)
+# set_target_properties(${PROJECT_NAME} PROPERTIES PUBLIC_HEADER client/client.h)
 
 # -- Build the tests --
 add_subdirectory(testing)

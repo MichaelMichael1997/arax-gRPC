@@ -551,7 +551,7 @@ void AraxClient::client_arax_data_free(uint64_t id)
  *
  * @return The ID of the new task of 0 on failure
  */
-uint64_t AraxClient::client_arax_task_issue(uint64_t accel, uint64_t proc, int host_init, size_t host_size,
+uint64_t AraxClient::client_arax_task_issue(uint64_t accel, uint64_t proc, char *host_init, size_t host_size,
   size_t in_count, uint64_t in_buffer, size_t out_count, uint64_t out_buffer)
 {
     TaskRequest req;

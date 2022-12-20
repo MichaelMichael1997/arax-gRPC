@@ -1,5 +1,10 @@
 #include "../arax_grpc_client/arax_grpc_client.h"
-#include <string>
+
+// -- Arax header files --
+#include <arax.h>
+#include <arax_pipe.h>
+#include <arax_types.h>
+#include <core/arax_data.h>
 
 using grpc::Channel;
 using grpc::ClientContext;
@@ -98,7 +103,7 @@ int main(int argc, char *argv[])
 
     client.client_arax_data_set(io[0], accel, vector_in);
 
-    Task task = client.client_arax_task_issue(accel, proc, magic, 4, 1, io[0], 1, io[1]);
+    Task task = client.client_arax_task_issue(accel, proc, 0, 0, 1, io[0], 1, io[1]);
 
     uint64_t state = client.client_arax_task_wait(task);
 
@@ -159,10 +164,10 @@ arax_task_state_e vectorop(arax_task_msg_s *msg)
     char *out = (char *) arax_data_deref(msg->io[1]);
     int magic = *(int *) arax_task_host_data(msg, 4);
 
-    if (magic != MAGIC) {
-        throw std::runtime_error("Magic numbers dont match! (" + std::to_string(magic) + ") vs ("
-                + std::to_string(MAGIC) + ")\n");
-    }
+    // if (magic != MAGIC) {
+    //     throw std::runtime_error("Magic numbers dont match! (" + std::to_string(magic) + ") vs ("
+    //             + std::to_string(MAGIC) + ")\n");
+    // }
 
     std::vector<int> vec = deserialize_vector(std::string(in)); // <-- Super ugly
 

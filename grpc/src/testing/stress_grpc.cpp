@@ -1,5 +1,11 @@
 #include "../arax_grpc_client/arax_grpc_client.h"
 
+// -- Arax header files --
+#include <arax.h>
+#include <arax_pipe.h>
+#include <arax_types.h>
+#include <core/arax_data.h>
+
 #include <cstring>
 #include <vector>
 #include <thread>

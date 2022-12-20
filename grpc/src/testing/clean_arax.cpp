@@ -1,5 +1,4 @@
 #include "../arax_grpc_client/arax_grpc_client.h"
-#include <grpcpp/security/credentials.h>
 
 using grpc::Channel;
 using grpc::ClientContext;
@@ -7,6 +6,12 @@ using grpc::ClientReader;
 using grpc::ClientReaderWriter;
 using grpc::ClientWriter;
 using grpc::Status;
+
+// -- Arax header files --
+#include <arax.h>
+#include <arax_pipe.h>
+#include <arax_types.h>
+#include <core/arax_data.h>
 
 using namespace arax;
 

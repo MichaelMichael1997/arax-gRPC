@@ -43,6 +43,6 @@ foreach(_target vector data noop_grpc)
 			      ${_REFLECTION}
 			      ${_GRPC_GRPCPP}
 			      ${_PROTOBUF_LIBPROTOBUF}
-			      ${ARAX_API}
+			      g_arax 
 			     )
 endforeach()

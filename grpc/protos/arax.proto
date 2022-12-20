@@ -120,7 +120,7 @@ message TaskRequest{
   uint64 in_buffer = 4;
   uint32 out_count = 5;
   uint64 out_buffer = 6;
-  int32 host_init = 7;
+  bytes host_init = 7;
   uint64 host_size = 8;
 }
 
