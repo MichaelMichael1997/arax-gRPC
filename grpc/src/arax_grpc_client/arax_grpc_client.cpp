@@ -551,7 +551,7 @@ void AraxClient::client_arax_data_free(uint64_t id)
  *
  * @return The ID of the new task of 0 on failure
  */
-uint64_t AraxClient::client_arax_task_issue(uint64_t accel, uint64_t proc, char *host_init, size_t host_size,
+uint64_t AraxClient::client_arax_task_issue(uint64_t accel, uint64_t proc, const char *host_init, size_t host_size,
   size_t in_count, uint64_t *in_buffer, size_t out_count, uint64_t *out_buffer)
 {
     TaskRequest req;
@@ -595,16 +595,6 @@ uint64_t AraxClient::client_arax_task_issue(uint64_t accel, uint64_t proc, char 
     for (size_t i = 0; i < out_count; i++) {
         req.add_out_buffer(*(out_buffer + i));
     }
-
-    for (const auto& i : req.in_buffer()) {
-        std::cout << i << " ";
-    }
-    std::cout << '\n';
-
-    for (const auto& i : req.out_buffer()) {
-        std::cout << i << " ";
-    }
-    std::cout << '\n';
 
     Status status = stub_->Arax_task_issue(&ctx, req, &res);
 
@@ -719,10 +709,10 @@ void AraxClient::large_data_set(uint64_t buffer, uint64_t accel, std::string dat
     size_t size = data.size();
 
     /* -- Set a deadline  relative to the size of input in kilobytes -- */
-    std::chrono::time_point<std::chrono::system_clock> deadline = std::chrono::system_clock::now()
-      + std::chrono::milliseconds(5000 + (size >> 10)); // --> 5 seconds plus extra for larger data
+    // std::chrono::time_point<std::chrono::system_clock> deadline = std::chrono::system_clock::now()
+    //   + std::chrono::milliseconds(5000 + (size >> 10)); // --> 5 seconds plus extra for larger data
 
-    ctx.set_deadline(deadline);
+    // ctx.set_deadline(deadline);
 
     /* -- Get the number of chunks, for debugging purposes -- */
     unsigned int chunks_num = ceil(float(size) / float(MAX_MSG));

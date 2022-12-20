@@ -86,9 +86,8 @@ int main(int argc, char *argv[])
         fprintf(stderr, "Task failed\n");
     }
 
-    std::string out = client.client_arax_data_get(io[1]);
-
-    // std::string out = client.client_arax_large_data_get(io[1]);
+    // std::string out = client.client_arax_data_get(io[1]);
+    std::string out = client.client_arax_large_data_get(io[1]);
 
     noop_op((char *) input.c_str(), temp, size);
     if (strcmp(out.c_str(), temp) != 0) {

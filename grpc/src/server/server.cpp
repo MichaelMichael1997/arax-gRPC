@@ -147,7 +147,7 @@ Status AraxServer::Arax_clean(ServerContext *ctx, const Empty *req, Empty *res)
     int result = arax_clean();
 
     if (result == 0) {
-        std::string error_msg("-- Arax failed to delete the shared segment --");
+        std::string error_msg("-- Arax failed to delete the shared segment (in arax clean)--");
         return Status(StatusCode::INTERNAL, error_msg);
     }
 
@@ -177,7 +177,7 @@ grpc::Status AraxServer::Arax_buffer(grpc::ServerContext *ctx, const RequestBuff
 
     // Insert buffer to mapping
     if (!insert_pair(buffers, id, buffer)) {
-        std::string error("-- A buffer with ID '" + std::to_string(id) + "' already exists --");
+        std::string error("-- A buffer with ID '" + std::to_string(id) + "' already exists (in arax buffer)--");
         return Status(StatusCode::INVALID_ARGUMENT, error);
     }
 
@@ -209,7 +209,8 @@ Status AraxServer::Arax_proc_register(ServerContext *ctx, const ProcRequest *req
     arax_proc *proc       = arax_proc_register(func_name.c_str());
 
     if (!proc) {
-        std::string error_msg("Arax failed to register the process with name '" + func_name + "'");
+        std::string error_msg("-- Arax failed to register the process with name '" + func_name
+          + "'(in proc register)--");
         res->set_id(0);
         return Status(StatusCode::INTERNAL, error_msg);
     }
@@ -248,7 +249,7 @@ Status AraxServer::Arax_proc_get(ServerContext *ctx, const ProcRequest *req, Res
 
     if (!proc) {
         std::string error("-- Could not retrieve process '" + func
-          + "'. Maybe it has not been registered, or arax failed to retrieve it --");
+          + "'. Maybe it has not been registered, or arax failed to retrieve it (in proc get)--");
         return Status(StatusCode::INVALID_ARGUMENT, error);
     }
 
@@ -295,7 +296,7 @@ Status AraxServer::Arax_proc_put(ServerContext *ctx, const AraxProc *req, ProcCo
     // check if process with name proc exists
     if (!check_if_exists(arax_processes, id)) {
         res->set_proc_counter(0);
-        std::string error_msg("-- No process with name '" + std::to_string(id) + "' exists --");
+        std::string error_msg("-- No process with name '" + std::to_string(id) + "' exists (in proc put)--");
         return Status(StatusCode::INVALID_ARGUMENT, error_msg);
     }
 
@@ -328,7 +329,7 @@ Status AraxServer::Arax_accel_acquire_type(ServerContext *ctx, const AccelReques
 
     /* INTERNAL seems to be a 'harsh' error code to return in this scenario. Maybe a more appropriate would be INVALID_ARGUMENT? */
     if (!accel) {
-        std::string error_msg("-- Failed to acquire accelerator of given type --");
+        std::string error_msg("-- Failed to acquire accelerator of given type (in accel acquire type)--");
         res->set_id(0);
         return Status(StatusCode::INTERNAL, error_msg);
     }
@@ -367,7 +368,8 @@ Status AraxServer::Arax_accel_release(ServerContext *ctx, const ResourceID *req,
         auto it = arax_accels.find(id);
         arax_accels.erase(it);
     } else {
-        std::string error_msg("-- Accelerator with ID '" + std::to_string(id) + "' does not exist --");
+        std::string error_msg("-- Accelerator with ID '" + std::to_string(id)
+          + "' does not exist (in accel release)--");
         return Status(StatusCode::INVALID_ARGUMENT, error_msg);
     }
 
@@ -426,13 +428,11 @@ Status AraxServer::Arax_data_get(ServerContext *ctx, const ResourceID *req, Data
     assert(res);
     #endif /* ifdef DEBUG */
 
-    fprintf(stderr, "In server data get with buffer ID %zu\n", req->id());
-
     uint64_t id = req->id();
 
     /* Check if buffer/data_s with that ID exists */
     if (!check_if_exists(buffers, id)) {
-        std::string error_msg("-- No buffer with ID '" + std::to_string(id) + "' exists --");
+        std::string error_msg("-- No buffer with ID '" + std::to_string(id) + "' exists (in data get)--");
         return Status(StatusCode::INVALID_ARGUMENT, error_msg);
     }
 
@@ -445,7 +445,7 @@ Status AraxServer::Arax_data_get(ServerContext *ctx, const ResourceID *req, Data
     #endif
 
     if (!data) {
-        std::string error("-- The system failed to allocate memory --");
+        std::string error("-- The system failed to allocate memory (in data get)--");
         return Status(StatusCode::INTERNAL, error);
     }
 
@@ -453,19 +453,17 @@ Status AraxServer::Arax_data_get(ServerContext *ctx, const ResourceID *req, Data
     arax_data_get(buffers[id], data);
 
     if (ctx->IsCancelled()) {
-        std::string error_msg("-- Deadline exceeded, or Client cancelled. Abandoning --");
+        std::string error_msg("-- Deadline exceeded, or Client cancelled. Abandoning (in data get)--");
         return Status(StatusCode::CANCELLED, error_msg);
     }
 
     if (!data) {
-        std::string error_msg("-- Failed to fetch the data from the buffer --\n");
+        std::string error_msg("-- Failed to fetch the data from the buffer (in data get)--");
         return Status(StatusCode::INTERNAL, error_msg);
     }
 
     /* -- Convert the pointer address to string and return it -- */
-    fprintf(stderr, "Before data get\n");
     res->set_data(data);
-    fprintf(stderr, "After data get\n");
 
     free(data);
 
@@ -494,7 +492,7 @@ Status AraxServer::Arax_large_data_get(ServerContext *ctx, const ResourceID *req
 
     /* Check if buffer with that ID exists */
     if (!check_if_exists(buffers, id)) {
-        std::string error_msg("-- No buffer with ID '" + std::to_string(id) + "' exists --");
+        std::string error_msg("-- No buffer with ID '" + std::to_string(id) + "' exists (in data get)--");
         return Status(StatusCode::INVALID_ARGUMENT, error_msg);
     }
 
@@ -508,7 +506,7 @@ Status AraxServer::Arax_large_data_get(ServerContext *ctx, const ResourceID *req
     #endif
 
     if (!data) {
-        std::string error("-- The system failed to allocate memory --");
+        std::string error("-- The system failed to allocate memory (in data get)--");
         return Status(StatusCode::INTERNAL, error);
     }
 
@@ -516,12 +514,12 @@ Status AraxServer::Arax_large_data_get(ServerContext *ctx, const ResourceID *req
     arax_data_get(buffers[id], data);
 
     if (!data) {
-        std::string error_msg("-- Failed to fetch the data from the buffer --\n");
+        std::string error_msg("-- Failed to fetch the data from the buffer (in data get)--\n");
         return Status(StatusCode::INTERNAL, error_msg);
     }
 
     if (ctx->IsCancelled()) {
-        std::string error_msg("-- Deadline exceeded, or Client cancelled. Abandoning --");
+        std::string error_msg("-- Deadline exceeded, or Client cancelled. Abandoning (in data get)--");
         return Status(StatusCode::CANCELLED, error_msg);
     }
 
@@ -553,7 +551,7 @@ Status AraxServer::Arax_large_data_get(ServerContext *ctx, const ResourceID *req
 
         if (!writer->Write(d)) {
             std::cerr << "-- Stream broke\n";
-            std::string error_msg("-- Stream broke --");
+            std::string error_msg("-- Stream broke (in data get)--");
             return Status(StatusCode::DATA_LOSS, error_msg);
         }
 
@@ -589,7 +587,7 @@ Status AraxServer::Arax_data_size(ServerContext *ctx, const ResourceID *req, Dat
 
     // Check if buffer exists
     if (!check_if_exists(buffers, id)) {
-        std::string error("-- Buffer with ID '" + std::to_string(id) + "' does not exist --");
+        std::string error("-- Buffer with ID '" + std::to_string(id) + "' does not exist (in data size)--");
         return Status(StatusCode::INVALID_ARGUMENT, error);
     }
 
@@ -619,7 +617,7 @@ Status AraxServer::Arax_data_free(ServerContext *ctx, const ResourceID *req, Emp
 
     // Check if buffer with ID exists
     if (!check_if_exists(buffers, id)) {
-        std::string error("-- No buffer with ID '" + std::to_string(id) + "' exists --");
+        std::string error("-- No buffer with ID '" + std::to_string(id) + "' exists (in data free)--");
         return Status(StatusCode::INVALID_ARGUMENT, error);
     }
 
@@ -662,13 +660,13 @@ Status AraxServer::Arax_task_issue(ServerContext *ctx, const TaskRequest *req, R
 
     // Arax accel
     if (!check_if_exists(arax_accels, accel)) {
-        std::string error_msg("-- No accelarator with ID '" + std::to_string(accel) + "' exists --");
+        std::string error_msg("-- No accelarator with ID '" + std::to_string(accel) + "' exists (in task issue)--");
         return Status(StatusCode::INVALID_ARGUMENT, error_msg);
     }
 
     // Arax proces
     if (!check_if_exists(arax_processes, proc)) {
-        std::string error_msg("-- No process with ID '" + std::to_string(proc) + "' exists --");
+        std::string error_msg("-- No process with ID '" + std::to_string(proc) + "' exists (in task issue)--");
         return Status(StatusCode::INVALID_ARGUMENT, error_msg);
     }
 
@@ -690,21 +688,19 @@ Status AraxServer::Arax_task_issue(ServerContext *ctx, const TaskRequest *req, R
     int index = 0;
     while (it_in != in_end) {
         if (!check_if_exists(buffers, *it_in)) {
-            std::string error_msg("-- No buffer with ID '" + std::to_string(*it_in) + "' exists --");
+            std::string error_msg("-- No buffer with ID '" + std::to_string(*it_in) + "' exists (in task issue)--");
             free(in_buffer);
             free(out_buffer);
             return Status(StatusCode::INVALID_ARGUMENT, error_msg);
         }
         *(in_buffer + index) = buffers[*it_in];
-        std::cerr << sizeof(*(in_buffer + index)) << " ";
         count++;
         it_in++;
     }
-    std::cerr << '\n';
 
     if (count != in_count) {
         std::string error_msg("-- Invalid in_count number. You passed '" + std::to_string(in_count)
-          + "' but '" + std::to_string(count) + "' buffers found --");
+          + "' but '" + std::to_string(count) + "' buffers found (in task issue)--");
         free(in_buffer);
         free(out_buffer);
         return Status(StatusCode::INVALID_ARGUMENT, error_msg);
@@ -715,21 +711,19 @@ Status AraxServer::Arax_task_issue(ServerContext *ctx, const TaskRequest *req, R
     count = 0;
     while (it_out != out_end) {
         if (!check_if_exists(buffers, *it_out)) {
-            std::string error_msg("-- No buffer with ID '" + std::to_string(*it_out) + "' exists --");
+            std::string error_msg("-- No buffer with ID '" + std::to_string(*it_out) + "' exists (in task issue)--");
             free(in_buffer);
             free(out_buffer);
             return Status(StatusCode::INVALID_ARGUMENT, error_msg);
         }
         *(out_buffer + index) = buffers[*it_out];
-        std::cerr << sizeof(*(out_buffer + index)) << '\n';
         count++;
         it_out++;
     }
-    std::cerr << '\n';
 
     if (count != out_count) {
         std::string error_msg("-- Invalid out_count number. You passed '" + std::to_string(out_count)
-          + "' but '" + std::to_string(count) + "' buffers found --");
+          + "' but '" + std::to_string(count) + "' buffers found  (in task issue)--");
         free(in_buffer);
         free(out_buffer);
         return Status(StatusCode::INVALID_ARGUMENT, error_msg);
@@ -747,7 +741,7 @@ Status AraxServer::Arax_task_issue(ServerContext *ctx, const TaskRequest *req, R
 
 
     if (task == NULL) {
-        std::string error_msg("-- Failed to issue task --");
+        std::string error_msg("-- Failed to issue task (in arax task issue)--");
         free(in_buffer);
         free(out_buffer);
         return Status(StatusCode::ABORTED, error_msg);
@@ -784,7 +778,7 @@ Status AraxServer::Arax_task_free(ServerContext *ctx, const TaskMessage *req, Em
 
     // check if task exists
     if (!check_if_exists(arax_tasks, task)) {
-        std::string error_msg("-- Task with ID '" + std::to_string(task) + "' does not exist --");
+        std::string error_msg("-- Task with ID '" + std::to_string(task) + "' does not exist (in task free)--");
         return Status(StatusCode::FAILED_PRECONDITION, error_msg);
     }
 
@@ -810,7 +804,7 @@ Status AraxServer::Arax_task_wait(ServerContext *ctx, const TaskMessage *req, Ta
 
     // See if task with the given ID exists
     if (!check_if_exists(arax_tasks, id)) {
-        std::string error_msg("-- There is no task registered with ID '" + std::to_string(id) + "' --");
+        std::string error_msg("-- There is no task registered with ID '" + std::to_string(id) + "' (in task wait)--");
         return Status(StatusCode::INVALID_ARGUMENT, error_msg);
     }
 
@@ -841,35 +835,34 @@ Status AraxServer::Arax_data_set_streaming(ServerContext *ctx, ServerReader<Data
 
     std::string client_data("");
     DataSet data;
-    unsigned int buffer = 0;
-    unsigned int accel  = 0;
+
+    /* -- Read the incoming data form the client -- */
+    while (reader->Read(&data)) {
+        client_data += data.data();
+    }
+
+    /* -- This probably shoud cause any issue, remember it if anything weird happens though -- */
+    uint64_t buffer = data.buffer();
+    uint64_t accel  = data.accel();
 
     if (!check_if_exists(buffers, buffer)) {
-        std::string error_msg("-- No buffer exists with ID'" + std::to_string(buffer) + "' --");
+        std::string error_msg("-- No buffer exists with ID'" + std::to_string(buffer) + "' (in data set)--");
         return Status(StatusCode::INVALID_ARGUMENT, error_msg);
     }
 
     if (!check_if_exists(arax_accels, accel)) {
-        std::string error_msg("-- No accelerator with ID'" + std::to_string(accel) + "' exists --");
+        std::string error_msg("-- No accelerator with ID'" + std::to_string(accel) + "' exists (in data set)--");
         return Status(StatusCode::INVALID_ARGUMENT, error_msg);
     }
-
-    /* -- Read the incoming data form the client -- */
-    while (reader->Read(&data)) {
-        client_data += std::string(data.data());
-    }
-    /* -- This probably shoud cause any issue, remember it if anything weird happens though -- */
-    buffer = data.buffer();
-    accel  = data.accel();
     size_t data_size = data.data_size();
     size_t megabytes = data_size >> 20;
 
-    fprintf(stderr, "Buffer %u, Accel %u, Data size %zu Data size in megabytes %zu\n", buffer, accel, data_size,
+    fprintf(stderr, "Buffer %zu, Accel %zu, Data size %zu Data size in megabytes %zu\n", buffer, accel, data_size,
       megabytes);
 
     /* -- Check if all data arrived -- */
     if (data_size != client_data.size()) {
-        std::string error_msg("-- Possible data loss --");
+        std::string error_msg("-- Possible data loss (in data set)--");
         return Status(StatusCode::DATA_LOSS, error_msg);
     }
 
@@ -900,7 +893,7 @@ Status AraxServer::Arax_data_init(ServerContext *ctx, const AraxData *req, Resou
     arax_data_s *data = arax_data_init(pipe_s, size);
 
     if (!data) {
-        std::string error_msg("-- Failed to initialize arax_data_s object --");
+        std::string error_msg("-- Failed to initialize arax_data_s object (in data init)--");
         res->set_id(0);
         return Status(StatusCode::INTERNAL, error_msg);
     }
@@ -935,7 +928,7 @@ Status AraxServer::Arax_data_init_aligned(ServerContext *ctx, const AraxData *re
     arax_data_s *data = arax_data_init_aligned(pipe_s, size, alignment);
 
     if (!data) {
-        std::string error_msg("-- Failed to initialize arax_data_s object --");
+        std::string error_msg("-- Failed to initialize arax_data_s object (in data init aligned)--");
         res->set_id(0);
         return Status(StatusCode::INTERNAL, error_msg);
     }

@@ -185,7 +185,8 @@ public:
      * @return The id of the new task or 0 on failure
      */
     [[nodiscard("-- Arax Task identifier returned, but it was discarded --")]]
-    uint64_t client_arax_task_issue(uint64_t accel, uint64_t proc, char *host_init, size_t host_size, size_t in_count,
+    uint64_t client_arax_task_issue(uint64_t accel, uint64_t proc, const char *host_init, size_t host_size,
+      size_t in_count,
       uint64_t *in_buffer,
       size_t out_count, uint64_t *out_buffer);
 

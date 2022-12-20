@@ -135,6 +135,9 @@ int main(int argc, char *argv[])
         fprintf(stderr, "-- Vector sizes don't match (%u vs %u)\n", input_vec.size(), output_vec.size());
     }
 
+    fprintf(stderr, "Last element of the original vector %d\n", input_vec.at(input_vec.size() - 1));
+    fprintf(stderr, "Last element of the returned vector %d\n", output_vec.at(output_vec.size() - 1));
+
     // vector_op(input_vec);
     // for (int i = 0; i < input_vec.size(); i++) {
     //     assert(input_vec.at(i) == output_vec.at(i));
@@ -150,7 +153,7 @@ int main(int argc, char *argv[])
     return 0;
 } // main
 
-#endif /* -- ifdef BUILD_MAIN -- */
+#endif /* ifdef BUILD_MAIN */
 
 
 #ifdef BUILD_SO
