@@ -86,8 +86,9 @@ int main(int argc, char *argv[])
         fprintf(stderr, "Task failed\n");
     }
 
-    // std::string out = client.client_arax_data_get(io[1]);
-    std::string out = client.client_arax_large_data_get(io[1]);
+    std::string out = client.client_arax_data_get(io[1]);
+
+    // std::string out = client.client_arax_large_data_get(io[1]);
 
     noop_op((char *) input.c_str(), temp, size);
     if (strcmp(out.c_str(), temp) != 0) {
@@ -124,12 +125,6 @@ arax_task_state_e noop(arax_task_msg_s *msg)
 
     char *in  = (char *) arax_data_deref(msg->io[0]);
     char *out = (char *) arax_data_deref(msg->io[1]);
-    int magic = *(int *) arax_task_host_data(msg, 4);
-
-    // if (magic != MAGIC) {
-    //     throw std::runtime_error("Magic numbers dont match! (" + std::to_string(magic) + ") vs ("
-    //             + std::to_string(MAGIC) + ")\n");
-    // }
 
     noop_op(in, out, l);
     arax_task_mark_done(msg, task_completed);

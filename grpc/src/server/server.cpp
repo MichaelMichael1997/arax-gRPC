@@ -696,9 +696,11 @@ Status AraxServer::Arax_task_issue(ServerContext *ctx, const TaskRequest *req, R
             return Status(StatusCode::INVALID_ARGUMENT, error_msg);
         }
         *(in_buffer + index) = buffers[*it_in];
+        std::cerr << sizeof(*(in_buffer + index)) << " ";
         count++;
         it_in++;
     }
+    std::cerr << '\n';
 
     if (count != in_count) {
         std::string error_msg("-- Invalid in_count number. You passed '" + std::to_string(in_count)
@@ -719,8 +721,11 @@ Status AraxServer::Arax_task_issue(ServerContext *ctx, const TaskRequest *req, R
             return Status(StatusCode::INVALID_ARGUMENT, error_msg);
         }
         *(out_buffer + index) = buffers[*it_out];
+        std::cerr << sizeof(*(out_buffer + index)) << '\n';
+        count++;
         it_out++;
     }
+    std::cerr << '\n';
 
     if (count != out_count) {
         std::string error_msg("-- Invalid out_count number. You passed '" + std::to_string(out_count)
@@ -729,7 +734,6 @@ Status AraxServer::Arax_task_issue(ServerContext *ctx, const TaskRequest *req, R
         free(out_buffer);
         return Status(StatusCode::INVALID_ARGUMENT, error_msg);
     }
-
 
     arax_accel *exec   = arax_accels[accel];
     arax_proc *process = arax_processes[proc];

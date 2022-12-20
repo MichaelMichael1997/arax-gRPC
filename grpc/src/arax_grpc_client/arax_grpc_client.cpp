@@ -567,7 +567,23 @@ uint64_t AraxClient::client_arax_task_issue(uint64_t accel, uint64_t proc, char 
     req.set_proc(proc);
     req.set_in_count(in_count);
     req.set_out_count(out_count);
-    req.set_host_init(host_init);
+    /* -- Throws error when initilizing bytes with null -- */
+    if (host_init == 0) {
+        req.set_host_init("");
+
+        /* -- Check for invalid input -- */
+        if (host_size != 0) {
+            fprintf(stderr, "-- Host data are NULL, but host size != 0 --\n");
+            return 0;
+        }
+    } else {
+        req.set_host_init(host_init);
+        /* -- Check for invalid input -- */
+        if (host_size == 0) {
+            fprintf(stderr, "-- Host data not NULL, but host size == 0 --\n");
+            return 0;
+        }
+    }
     req.set_host_size(host_size);
 
     /* pass the in buffers */
@@ -581,6 +597,11 @@ uint64_t AraxClient::client_arax_task_issue(uint64_t accel, uint64_t proc, char 
     }
 
     for (const auto& i : req.in_buffer()) {
+        std::cout << i << " ";
+    }
+    std::cout << '\n';
+
+    for (const auto& i : req.out_buffer()) {
         std::cout << i << " ";
     }
     std::cout << '\n';

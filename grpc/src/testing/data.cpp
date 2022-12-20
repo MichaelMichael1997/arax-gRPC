@@ -148,11 +148,6 @@ arax_task_state_e something(arax_task_msg_s *msg)
 
     char *in  = (char *) arax_data_deref(msg->io[0]);
     char *out = (char *) arax_data_deref(msg->io[1]);
-    int magic = *(int *) arax_task_host_data(msg, 4);
-
-    // if (magic != MAGIC) {
-    //     throw std::runtime_error("Magic numbers don't match!\n");
-    // }
 
     /* -- Deserialize input -- */
     int input = deserialize_int(std::string(in)); // --> This is ugly
