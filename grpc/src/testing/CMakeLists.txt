@@ -18,8 +18,13 @@ target_include_directories(datalib PRIVATE ${ARAX_CONTROLLER_PATH}/include)
 target_compile_definitions(datalib PRIVATE BUILD_SO)
 target_link_libraries(datalib arax)
 
+add_library(structlib SHARED struct.cpp)
+target_include_directories(structlib PRIVATE ${ARAX_CONTROLLER_PATH}/include)
+target_compile_definitions(structlib PRIVATE BUILD_SO)
+target_link_libraries(structlib arax)
+
 # Create the executable and create link the library
-foreach(_target noop_grpc data)
+foreach(_target noop_grpc data struct)
 	add_executable(${_target}
 			"${_target}.cpp" 
 		      )
@@ -32,6 +37,7 @@ foreach(_target noop_grpc data)
 			      pthread
                   nooplib
                   datalib
+                  structlib
 			      ${_REFLECTION}
 			      ${_GRPC_GRPCPP}
 			      ${_PROTOBUF_LIBPROTOBUF}

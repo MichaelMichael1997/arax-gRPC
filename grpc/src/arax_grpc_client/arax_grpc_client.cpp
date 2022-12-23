@@ -347,19 +347,13 @@ void AraxClient::client_arax_data_set(uint64_t buffer, uint64_t accel, void *dat
         return;
     }
 
-    char *bytes = (char *) malloc(size + 1); // +1 for the '\0' terminating character
-    memcpy(bytes, data, size);
-    bytes[size] = '\0';
-
     /* -- Plus 1 for the null terminating character -- */
     req.set_buffer(buffer);
     req.set_accel(accel);
     req.set_data_size(size);
-    req.set_data(bytes, size);
+    req.set_data(data, size);
 
     Status status = stub_->Arax_data_set(&ctx, req, &res);
-
-    free(bytes);
 
     if (!status.ok()) {
         #ifdef __linux
@@ -422,7 +416,6 @@ void AraxClient::client_arax_data_get(uint64_t buffer, void *user)
         #endif /* ifdef __linux__ */
         return;
     }
-    std::cerr << "What we got back from the server: " << res.data().data() << '\n';
 
     size_t size = res.data_size();
     memcpy(user, res.data().data(), size);
@@ -570,7 +563,7 @@ void AraxClient::client_arax_data_free(uint64_t id)
  *
  * @return The ID of the new task of 0 on failure
  */
-uint64_t AraxClient::client_arax_task_issue(uint64_t accel, uint64_t proc, const char *host_init, size_t host_size,
+uint64_t AraxClient::client_arax_task_issue(uint64_t accel, uint64_t proc, void *host_init, size_t host_size,
   size_t in_count, uint64_t *in_buffer, size_t out_count, uint64_t *out_buffer)
 {
     TaskRequest req;
@@ -588,7 +581,7 @@ uint64_t AraxClient::client_arax_task_issue(uint64_t accel, uint64_t proc, const
     req.set_out_count(out_count);
     /* -- Throws error when initilizing bytes with null -- */
     if (host_init == 0) {
-        req.set_host_init("");
+        req.set_host_init("", 0);
 
         /* -- Check for invalid input -- */
         if (host_size != 0) {
@@ -596,12 +589,12 @@ uint64_t AraxClient::client_arax_task_issue(uint64_t accel, uint64_t proc, const
             return 0;
         }
     } else {
-        req.set_host_init(host_init);
         /* -- Check for invalid input -- */
         if (host_size == 0) {
             fprintf(stderr, "-- Host data not NULL, but host size == 0 --\n");
             return 0;
         }
+        req.set_host_init(host_init, host_size);
     }
     req.set_host_size(host_size);
 

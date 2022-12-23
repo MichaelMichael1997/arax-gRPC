@@ -440,7 +440,7 @@ Status AraxServer::Arax_data_get(ServerContext *ctx, const ResourceID *req, Data
 
     arax_data_get(buffers[id], mem);
 
-    res->set_data((char *) mem, size);
+    res->set_data(mem, size);
     res->set_data_size(size);
 
     if (ctx->IsCancelled()) {
@@ -636,7 +636,7 @@ Status AraxServer::Arax_task_issue(ServerContext *ctx, const TaskRequest *req, R
     uint64_t proc         = req->proc();
     size_t in_count       = req->in_count();
     size_t out_count      = req->out_count();
-    std::string host_init = req->host_init().c_str();
+    const char *host_init = req->host_init().data();
     size_t host_size      = req->host_size();
 
     // Arax accel
@@ -651,6 +651,7 @@ Status AraxServer::Arax_task_issue(ServerContext *ctx, const TaskRequest *req, R
         return Status(StatusCode::INVALID_ARGUMENT, error_msg);
     }
 
+    /* -- Fix the buffer i/o arrays -- */
     arax_buffer_s in_buffer[in_count];
     arax_buffer_s out_buffer[out_count];
 
@@ -704,10 +705,10 @@ Status AraxServer::Arax_task_issue(ServerContext *ctx, const TaskRequest *req, R
     arax_proc *process = arax_processes[proc];
 
     arax_task *task = NULL;
-    if (host_init.empty() || host_size == 0) {
+    if (host_init == NULL || host_size == 0) {
         task = arax_task_issue(exec, process, 0, 0, in_count, in_buffer, out_count, out_buffer);
     } else {
-        task = arax_task_issue(exec, process, &host_init, host_size, in_count, in_buffer, out_count, out_buffer);
+        task = arax_task_issue(exec, process, host_init, host_size, in_count, in_buffer, out_count, out_buffer);
     }
 
 

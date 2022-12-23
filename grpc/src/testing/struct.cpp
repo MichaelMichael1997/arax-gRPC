@@ -6,7 +6,7 @@
 #include <arax_types.h>
 #include <core/arax_data.h>
 
-#define ARR_SIZE 10
+#define MAGIC 1337
 
 using namespace arax;
 
@@ -15,11 +15,35 @@ typedef uint64_t Buffer;
 typedef uint64_t Proc;
 typedef uint64_t Accel;
 
-void process_arr(float *arr)
+typedef struct
 {
-    for (int i = 0; i < ARR_SIZE; i++) {
-        arr[i] += 2.5f;
-    }
+    int running;
+    int blocked;
+    int ready;
+} proc_stats;
+
+typedef struct
+{
+    unsigned int proc_id;
+    unsigned int state;
+    proc_stats   stats;
+} proc_t;
+
+void block_proc(proc_t * const proc)
+{
+    proc->state         = 0;
+    proc->stats.running = -1;
+    proc->stats.blocked = 1;
+    proc->stats.ready   = -1;
+}
+
+void print_proc(const proc_t& proc)
+{
+    fprintf(stderr, "Process ID %u\nProcess State %d\n", proc.proc_id, proc.state);
+    fprintf(stderr, "--- STATS ---\n");
+    fprintf(stderr, "Running %d\nBlocked %d\nReady %d\n", proc.stats.running,
+      proc.stats.blocked,
+      proc.stats.ready);
 }
 
 #ifdef BUILD_MAIN
@@ -27,14 +51,19 @@ int main(int argc, char *argv[])
 {
     AraxClient client("localhost:50051");
 
-    size_t size = ARR_SIZE * sizeof(float);
-    float *p    = (float *) malloc(size);
+    proc_t p;
 
-    for (int i = 0; i < ARR_SIZE; i++) {
-        p[i] = i / 2.0f;
-        printf("%f ", p[i]);
-    }
-    printf("\n");
+    p.proc_id       = 1;
+    p.state         = 2;
+    p.stats.running = 1000;
+    p.stats.blocked = -1000;
+    p.stats.ready   = 1000;
+
+    fprintf(stderr, "-- Before blocking --\n");
+    print_proc(p);
+
+    size_t size = sizeof(p);
+    int magic   = MAGIC;
 
     /* -- Request buffer -- */
     Buffer io[1] = {
@@ -45,17 +74,17 @@ int main(int argc, char *argv[])
     Accel accel = client.client_arax_accel_acquire_type(CPU);
 
     /* -- Get registered process -- */
-    Proc proc = client.client_arax_proc_get("float_array");
+    Proc proc = client.client_arax_proc_get("proc_sched");
 
     /* -- Failed to retrieve registered process -- */
     if (proc == 0) {
         exit(EXIT_FAILURE);
     }
 
-    client.client_arax_data_set(io[0], accel, p, size);
+    client.client_arax_data_set(io[0], accel, &p, size);
 
     // /* -- Issue task -- */
-    Task task = client.client_arax_task_issue(accel, proc, 0, 0, 1, io, 1, io);
+    Task task = client.client_arax_task_issue(accel, proc, &magic, 4, 1, io, 1, io);
 
     int task_state = client.client_arax_task_wait(task);
 
@@ -74,21 +103,16 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
-    client.client_arax_data_get(io[0], p);
+    client.client_arax_data_get(io[0], &p);
 
-    printf("After data_get\n");
-    for (int i = 0; i < ARR_SIZE; i++) {
-        printf("%f ", p[i]);
-    }
-    printf("\n");
+    fprintf(stderr, "-- After blocking --\n");
+    print_proc(p);
 
     /* -- Free the resources -- */
     client.client_arax_data_free(io[0]);
     client.client_arax_task_free(task);
     client.client_arax_proc_put(proc);
     client.client_arax_accel_release(accel);
-
-    free(p);
 
     return 0;
 } // main
@@ -100,20 +124,26 @@ int main(int argc, char *argv[])
 #include <core/arax_data_private.h>
 #include <AraxLibUtilsCPU.h>
 
-arax_task_state_e float_array(arax_task_msg_s *msg)
+arax_task_state_e proc_sched(arax_task_msg_s *msg)
 {
     // proc_t proc  = *(proc_t *) arax_data_deref(msg->io[0]);
-    float *arr = (float *) arax_data_deref(msg->io[0]);
+    proc_t *p = (proc_t *) arax_data_deref(msg->io[0]);
+    int magic = *(int *) arax_task_host_data(msg, 4);
+
+    if (magic != MAGIC) {
+        throw std::runtime_error("Magic numbers don't match! \'" + std::to_string(magic) + " != "
+                + " \'" + std::to_string(MAGIC) + "\'\n");
+    }
 
     // block_process(proc);
-    process_arr(arr);
+    block_proc(p);
 
     arax_task_mark_done(msg, task_completed);
     return task_completed;
 }
 
 ARAX_PROC_LIST_START()
-ARAX_PROCEDURE("float_array", CPU, float_array, 0)
-ARAX_PROCEDURE("float_array", GPU, float_array, 0)
+ARAX_PROCEDURE("proc_sched", CPU, proc_sched, 0)
+ARAX_PROCEDURE("proc_sched", GPU, proc_sched, 0)
 ARAX_PROC_LIST_END()
 #endif /* -- BUILD_SO -- */

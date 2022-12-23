@@ -56,7 +56,7 @@ int main(int argc, char *argv[])
 
     client.client_arax_data_set(io[0], accel, argv[1], size);
 
-    Task task = client.client_arax_task_issue(accel, proc, 0, 0, 1, io, 1, io + 1);
+    Task task = client.client_arax_task_issue(accel, proc, &magic, 4, 1, io, 1, io + 1);
 
     uint64_t state = client.client_arax_task_wait(task);
 
@@ -97,6 +97,12 @@ arax_task_state_e noop(arax_task_msg_s *msg)
 
     char *in  = (char *) arax_data_deref(msg->io[0]);
     char *out = (char *) arax_data_deref(msg->io[1]);
+    int magic = *(int *) arax_task_host_data(msg, 4);
+
+    if (magic != MAGIC) {
+        throw std::runtime_error("Magic numbers don't match! \'" + std::to_string(magic) + " != "
+                + " \'" + std::to_string(MAGIC) + "\'\n");
+    }
 
     noop_op(in, out, l);
     arax_task_mark_done(msg, task_completed);
