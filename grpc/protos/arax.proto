@@ -134,6 +134,7 @@ message DataSet{
   uint64 accel = 2;
   bytes data = 4; // pointer to data in string
   uint64 data_size = 5; // field used for arax_data_size
+  string tmp = 6;
 }
 
 message AraxData{

@@ -315,18 +315,20 @@ void AraxClient::client_arax_accel_release(uint64_t id)
  *
  * @return nothing
  */
-void AraxClient::client_arax_data_set(uint64_t buffer, uint64_t accel, std::string data)
+void AraxClient::client_arax_data_set(uint64_t buffer, uint64_t accel, void *data, size_t size)
 {
+    #ifdef DEBUG
+    assert(data);
+    #endif
+
     /*
      * Google suggests that protobuf messages over 1MB are not optimal.
      * If the serialized data is larger than that, then this calls the
      * client streaming version, which fragments the data and sends them sequentially.
      * If they are not, then proceed normally
      */
-    size_t bytes = data.size();
-
-    if (bytes > MAX_MSG) {
-        large_data_set(buffer, accel, data);
+    if (size > MAX_MSG) {
+        // large_data_set(buffer, accel, data);
         return;
     }
 
@@ -335,17 +337,29 @@ void AraxClient::client_arax_data_set(uint64_t buffer, uint64_t accel, std::stri
     ClientContext ctx;
 
     /* -- Set a deadline (10s) -- */
-    std::chrono::time_point<std::chrono::system_clock> deadline = std::chrono::system_clock::now()
-      + std::chrono::milliseconds(10000);
+    // std::chrono::time_point<std::chrono::system_clock> deadline = std::chrono::system_clock::now()
+    //   + std::chrono::milliseconds(10000);
 
-    ctx.set_deadline(deadline);
+    // ctx.set_deadline(deadline);
 
+    if (!data) {
+        fprintf(stderr, "-- Invalid data entered\n");
+        return;
+    }
+
+    char *bytes = (char *) malloc(size + 1); // +1 for the '\0' terminating character
+    memcpy(bytes, data, size);
+    bytes[size] = '\0';
+
+    /* -- Plus 1 for the null terminating character -- */
     req.set_buffer(buffer);
     req.set_accel(accel);
-    req.set_data(data.data(), bytes);
-    req.set_data_size(bytes);
+    req.set_data_size(size);
+    req.set_data(bytes, size);
 
     Status status = stub_->Arax_data_set(&ctx, req, &res);
+
+    free(bytes);
 
     if (!status.ok()) {
         #ifdef __linux
@@ -372,20 +386,21 @@ void AraxClient::client_arax_data_set(uint64_t buffer, uint64_t accel, std::stri
  * Return the data that was set to an arax buffer
  *
  * @param buffer The ID of the buffer
+ * @param user Memory at least data_size long
  *
- * @return The serialized data or NULL on failure
+ * @return nothing
  */
-std::string AraxClient::client_arax_data_get(uint64_t buffer)
+void AraxClient::client_arax_data_get(uint64_t buffer, void *user)
 {
     ClientContext ctx;
     ResourceID req;
     DataSet res;
 
     /* -- Set deadline -- */
-    std::chrono::time_point<std::chrono::system_clock> deadline = std::chrono::system_clock::now()
-      + std::chrono::milliseconds(10000); // -> 10s
+    // std::chrono::time_point<std::chrono::system_clock> deadline = std::chrono::system_clock::now()
+    //   + std::chrono::milliseconds(10000); // -> 10s
 
-    ctx.set_deadline(deadline);
+    // ctx.set_deadline(deadline);
 
     req.set_id(buffer);
 
@@ -405,10 +420,14 @@ std::string AraxClient::client_arax_data_get(uint64_t buffer)
         std::cerr << status.error_message() << "\n";
         std::cerr << status.error_details() << "\n\n";
         #endif /* ifdef __linux__ */
-        return std::string("");
+        return;
     }
+    std::cerr << "What we got back from the server: " << res.data().data() << '\n';
 
-    return res.data();
+    size_t size = res.data_size();
+    memcpy(user, res.data().data(), size);
+
+    return;
 } // AraxClient::client_arax_data_get
 
 /*
@@ -702,85 +721,85 @@ int AraxClient::client_arax_task_wait(uint64_t task)
  * @param accel  The accelerator identifier
  * @param data   The data
  */
-void AraxClient::large_data_set(uint64_t buffer, uint64_t accel, std::string data)
+void AraxClient::large_data_set(uint64_t buffer, uint64_t accel, void *data, size_t size)
 {
-    ClientContext ctx;
-    Empty res;
-    size_t size = data.size();
+    // ClientContext ctx;
+    // Empty res;
+    // size_t size = data.size();
 
-    /* -- Set a deadline  relative to the size of input in kilobytes -- */
-    // std::chrono::time_point<std::chrono::system_clock> deadline = std::chrono::system_clock::now()
-    //   + std::chrono::milliseconds(5000 + (size >> 10)); // --> 5 seconds plus extra for larger data
+    // /* -- Set a deadline  relative to the size of input in kilobytes -- */
+    // // std::chrono::time_point<std::chrono::system_clock> deadline = std::chrono::system_clock::now()
+    // //   + std::chrono::milliseconds(5000 + (size >> 10)); // --> 5 seconds plus extra for larger data
 
-    // ctx.set_deadline(deadline);
+    // // ctx.set_deadline(deadline);
 
-    /* -- Get the number of chunks, for debugging purposes -- */
-    unsigned int chunks_num = ceil(float(size) / float(MAX_MSG));
+    // /* -- Get the number of chunks, for debugging purposes -- */
+    // unsigned int chunks_num = ceil(float(size) / float(MAX_MSG));
 
-    std::cout << "-- Number of chunks to send: " << chunks_num << "--\n";
-    std::cout << "-- Data size in megabytes: " << (size >> 20) << "\n";
+    // std::cout << "-- Number of chunks to send: " << chunks_num << "--\n";
+    // std::cout << "-- Data size in megabytes: " << (size >> 20) << "\n";
 
-    /* -- write to stream for server -- */
-    std::unique_ptr<ClientWriter<DataSet> > writer(stub_->Arax_data_set_streaming(&ctx, &res));
+    // /* -- write to stream for server -- */
+    // std::unique_ptr<ClientWriter<DataSet> > writer(stub_->Arax_data_set_streaming(&ctx, &res));
 
-    /* -- Split the data into chunks of 1 MAX_MSG each-- */
-    long int remaining = size;
-    size_t it      = 0;
-    int iterations = 0;
+    // /* -- Split the data into chunks of 1 MAX_MSG each-- */
+    // long int remaining = size;
+    // size_t it      = 0;
+    // int iterations = 0;
 
-    fprintf(stderr, "It %zu, Current sent %zu, Remaining %ld Iterations %d\n", it, it, remaining, iterations);
-    while (it < size) {
-        std::string chunk;
-        /* -- Less than 1 MAX_MSG remains -- */
-        if (remaining < MAX_MSG) {
-            chunk     = data.substr(it, remaining);
-            it       += remaining;
-            remaining = 0; /* -- no more to send -- */
-        } else {
-            chunk      = data.substr(it, MAX_MSG);
-            it        += MAX_MSG;
-            remaining -= MAX_MSG;
-        }
+    // fprintf(stderr, "It %zu, Current sent %zu, Remaining %ld Iterations %d\n", it, it, remaining, iterations);
+    // while (it < size) {
+    //     std::string chunk;
+    //     /* -- Less than 1 MAX_MSG remains -- */
+    //     if (remaining < MAX_MSG) {
+    //         chunk     = data.substr(it, remaining);
+    //         it       += remaining;
+    //         remaining = 0; /* -- no more to send -- */
+    //     } else {
+    //         chunk      = data.substr(it, MAX_MSG);
+    //         it        += MAX_MSG;
+    //         remaining -= MAX_MSG;
+    //     }
 
-        DataSet d;
-        d.set_data(chunk);
-        d.set_data_size(data.size()); // --> The original data size
-        d.set_buffer(buffer);
-        d.set_accel(accel);
+    //     DataSet d;
+    //     d.set_data(chunk);
+    //     d.set_data_size(data.size()); // --> The original data size
+    //     d.set_buffer(buffer);
+    //     d.set_accel(accel);
 
-        if (!writer->Write(d)) {
-            std::cerr << "-- Stream broke\n";
-            break;
-        }
+    //     if (!writer->Write(d)) {
+    //         std::cerr << "-- Stream broke\n";
+    //         break;
+    //     }
 
-        iterations += 1;
-        fprintf(stderr, "It %zu, Current sent %zu, Remaining %ld Iterations %d\n", it, it, remaining, iterations);
-    }
+    //     iterations += 1;
+    //     fprintf(stderr, "It %zu, Current sent %zu, Remaining %ld Iterations %d\n", it, it, remaining, iterations);
+    // }
 
-    // std::cerr << "Loop iterations " << iterations << "\n";
+    // // std::cerr << "Loop iterations " << iterations << "\n";
 
-    writer->WritesDone();
+    // writer->WritesDone();
 
-    fprintf(stderr, "Finished streaming!\n");
+    // fprintf(stderr, "Finished streaming!\n");
 
-    Status status = writer->Finish();
+    // Status status = writer->Finish();
 
-    if (!status.ok()) {
-        #ifdef __linux__
-        std::stringstream ss;
-        ss << ERROR_COL;
-        ss << "\nERROR: " << status.error_code() << "\n";
-        ss << status.error_message() << "\n";
-        ss << status.error_details() << "\n\n";
-        ss << RESET_COL;
-        std::cerr << ss.str();
-        #else
-        std::cout << "\nERROR: " << status.error_code() << "\n";
-        std::cout << status.error_message() << "\n";
-        std::cout << status.error_details() << "\n\n";
-        #endif /* ifdef __linux__ */
-        return;
-    }
+    // if (!status.ok()) {
+    //     #ifdef __linux__
+    //     std::stringstream ss;
+    //     ss << ERROR_COL;
+    //     ss << "\nERROR: " << status.error_code() << "\n";
+    //     ss << status.error_message() << "\n";
+    //     ss << status.error_details() << "\n\n";
+    //     ss << RESET_COL;
+    //     std::cerr << ss.str();
+    //     #else
+    //     std::cout << "\nERROR: " << status.error_code() << "\n";
+    //     std::cout << status.error_message() << "\n";
+    //     std::cout << status.error_details() << "\n\n";
+    //     #endif /* ifdef __linux__ */
+    //     return;
+    // }
 } // AraxClient::large_data_set
 
 /*

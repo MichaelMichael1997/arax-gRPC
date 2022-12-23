@@ -2,6 +2,7 @@
 #define ARAX_GRPC_CLIENT_H
 
 #include <iostream>
+#include <string.h>
 #include <stdlib.h>
 #include <chrono>
 #include <memory>
@@ -41,7 +42,7 @@ private:
      * @param accel  The accelerator identifier
      * @param data   The data
      */
-    void large_data_set(uint64_t buffer, uint64_t accel, std::string data);
+    void large_data_set(uint64_t buffer, uint64_t accel, void *data, size_t size);
 
 public:
 
@@ -133,7 +134,7 @@ public:
      *
      * @return nothing
      */
-    void client_arax_data_set(uint64_t buffer, uint64_t accel, std::string data);
+    void client_arax_data_set(uint64_t buffer, uint64_t accel, void *data, size_t size);
 
     /*
      * Return the data that was set to an arax buffer
@@ -142,7 +143,7 @@ public:
      *
      * @return The serialized data or empty string on failure
      */
-    std::string client_arax_data_get(uint64_t buffer);
+    void client_arax_data_get(uint64_t buffer, void *user);
 
     /*
      * Similar to client_arax_data_get

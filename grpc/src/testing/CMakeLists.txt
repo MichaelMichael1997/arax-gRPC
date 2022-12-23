@@ -18,15 +18,8 @@ target_include_directories(datalib PRIVATE ${ARAX_CONTROLLER_PATH}/include)
 target_compile_definitions(datalib PRIVATE BUILD_SO)
 target_link_libraries(datalib arax)
 
-# -- Create a test kernel for a vector of integers --
-add_library(vectorlib SHARED vector.cpp)
-target_include_directories(vectorlib PRIVATE ${ARAX_CONTROLLER_PATH}/include)
-target_compile_definitions(vectorlib PRIVATE BUILD_SO)
-target_link_libraries(vectorlib arax)
-
-
 # Create the executable and create link the library
-foreach(_target vector data noop_grpc clean_arax)
+foreach(_target noop_grpc data)
 	add_executable(${_target}
 			"${_target}.cpp" 
 		      )
@@ -37,7 +30,6 @@ foreach(_target vector data noop_grpc clean_arax)
 	target_link_libraries(${_target}
 			      arax
 			      pthread
-                  vectorlib
                   nooplib
                   datalib
 			      ${_REFLECTION}

@@ -6,13 +6,6 @@
 #include <arax_types.h>
 #include <core/arax_data.h>
 
-using grpc::Channel;
-using grpc::ClientContext;
-using grpc::ClientReader;
-using grpc::ClientReaderWriter;
-using grpc::ClientWriter;
-using grpc::Status;
-
 using namespace arax;
 
 #define MAGIC 1337
@@ -51,27 +44,17 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
-    std::string input(argv[1]);
-
-    for (int i = 0; i < 20000006; i++) {
-        input += "t";
-    }
-
-    size_t size = input.size();
-
-    fprintf(stderr, "-- Input string size in bytes: %zu\n", size);
-    fprintf(stderr, "-- Input string size in megabytes: %zu\n", size >> 20);
-
-    // size_t size = strlen(argv[1]) + 1;
-    int magic  = MAGIC;
-    char *temp = (char *) calloc(size, 1);
+    size_t size = strlen(argv[1]) + 1;
+    int magic   = MAGIC;
+    char *temp  = (char *) calloc(size, 1);
+    char *out   = (char *) calloc(size, 1);
 
     Buffer io[2] = {
         client.client_arax_buffer(size),
         client.client_arax_buffer(size)
     };
 
-    client.client_arax_data_set(io[0], accel, input);
+    client.client_arax_data_set(io[0], accel, argv[1], size);
 
     Task task = client.client_arax_task_issue(accel, proc, 0, 0, 1, io, 1, io + 1);
 
@@ -86,26 +69,16 @@ int main(int argc, char *argv[])
         fprintf(stderr, "Task failed\n");
     }
 
-    // std::string out = client.client_arax_data_get(io[1]);
-    std::string out = client.client_arax_large_data_get(io[1]);
+    client.client_arax_data_get(io[1], out);
 
-    noop_op((char *) input.c_str(), temp, size);
-    if (strcmp(out.c_str(), temp) != 0) {
-        fprintf(stderr, "-- Strings are not equal\n");
-    } else {
-        fprintf(stderr, "-- Strings are equal! --\n");
-    }
-    // fprintf(stderr, "Noop is   \'%s\'\n", out.c_str());
-    // fprintf(stderr, "Should be \'%s\'\n", temp);
+    fprintf(stderr, "Noop is   \'%s\'\n", out);
+    noop_op(argv[1], temp, size);
+    fprintf(stderr, "Should be \'%s\'\n", temp);
     client.client_arax_data_free(io[0]);
     client.client_arax_data_free(io[1]);
     client.client_arax_task_free(task);
     client.client_arax_proc_put(proc);
     client.client_arax_accel_release(accel);
-
-    if (strcmp(out.c_str(), temp) == 0) {
-        fprintf(stdout, "-- The two string are equal --\n");
-    }
 
     return 0;
 } // main
