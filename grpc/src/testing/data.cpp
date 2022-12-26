@@ -6,7 +6,7 @@
 #include <arax_types.h>
 #include <core/arax_data.h>
 
-#define ARR_SIZE 10
+#define ARR_SIZE 4000000
 
 using namespace arax;
 
@@ -18,7 +18,7 @@ typedef uint64_t Accel;
 void process_arr(float *arr)
 {
     for (int i = 0; i < ARR_SIZE; i++) {
-        arr[i] += 2.5f;
+        arr[i] *= 2;
     }
 }
 
@@ -29,10 +29,12 @@ int main(int argc, char *argv[])
 
     size_t size = ARR_SIZE * sizeof(float);
     float *p    = (float *) malloc(size);
+    float *init = (float *) malloc(size);
 
     for (int i = 0; i < ARR_SIZE; i++) {
-        p[i] = i / 2.0f;
-        printf("%f ", p[i]);
+        p[i]    = i / 2.0f;
+        init[i] = i / 2.0f;
+        // printf("%f ", p[i]);
     }
     printf("\n");
 
@@ -74,11 +76,13 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
-    client.client_arax_data_get(io[0], p);
+    // client.client_arax_data_get(io[0], p);
+    client.client_arax_data_get(io[0], p, size);
 
     printf("After data_get\n");
     for (int i = 0; i < ARR_SIZE; i++) {
-        printf("%f ", p[i]);
+        // printf("%f ", p[i]);
+        assert(p[i] == 2 * init[i]);
     }
     printf("\n");
 
@@ -89,6 +93,7 @@ int main(int argc, char *argv[])
     client.client_arax_accel_release(accel);
 
     free(p);
+    free(init);
 
     return 0;
 } // main

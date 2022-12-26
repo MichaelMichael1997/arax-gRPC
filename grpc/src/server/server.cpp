@@ -23,7 +23,9 @@ using namespace arax;
 #define RESET_COL   "\033[0m"
 #endif /* #ifdef __linux__ */
 
-#define MAX_MSG 524288
+// #define MAX_MSG 524288
+
+constexpr long int MAX_MSG = 524288;
 
 /*
  * Constructor to start the server and init arax
@@ -480,7 +482,7 @@ Status AraxServer::Arax_large_data_get(ServerContext *ctx, const ResourceID *req
     size_t size = arax_data_size(buffers[id]);
 
     // Alocate memory for the data to be copied
-    char *data = (char *) calloc(size, 1);
+    void *data = (void *) malloc(size);
 
     #ifdef DEBUG
     assert(data);
@@ -504,7 +506,7 @@ Status AraxServer::Arax_large_data_get(ServerContext *ctx, const ResourceID *req
         return Status(StatusCode::CANCELLED, error_msg);
     }
 
-    std::string data_str(data);
+    std::string data_str((char *) data, size);
 
     /* -- Split the data into chunks of 1 MAX_MSG each-- */
     size = data_str.size();
@@ -541,8 +543,6 @@ Status AraxServer::Arax_large_data_get(ServerContext *ctx, const ResourceID *req
     }
 
     fprintf(stderr, "Total iterations %d\n", iterations);
-
-    free(data);
 
     return Status::OK;
 } // AraxServer::Arax_large_data_get

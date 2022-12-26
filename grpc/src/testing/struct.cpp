@@ -103,7 +103,7 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
-    client.client_arax_data_get(io[0], &p);
+    client.client_arax_data_get(io[0], &p, size);
 
     fprintf(stderr, "-- After blocking --\n");
     print_proc(p);

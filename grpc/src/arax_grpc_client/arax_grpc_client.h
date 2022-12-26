@@ -143,7 +143,7 @@ public:
      *
      * @return The serialized data or empty string on failure
      */
-    void client_arax_data_get(uint64_t buffer, void *user);
+    void client_arax_data_get(uint64_t buffer, void *user, size_t size);
 
     /*
      * Similar to client_arax_data_get
@@ -153,7 +153,7 @@ public:
      *
      * @return The serialized data or an empty string on failure
      */
-    std::string client_arax_large_data_get(uint64_t buffer);
+    void client_arax_large_data_get(uint64_t buffer, void *user, size_t size);
 
     /*
      * Return the size of the data of specified arax_data

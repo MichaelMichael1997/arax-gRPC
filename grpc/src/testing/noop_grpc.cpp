@@ -69,7 +69,7 @@ int main(int argc, char *argv[])
         fprintf(stderr, "Task failed\n");
     }
 
-    client.client_arax_data_get(io[1], out);
+    client.client_arax_data_get(io[1], out, size);
 
     fprintf(stderr, "Noop is   \'%s\'\n", out);
     noop_op(argv[1], temp, size);
