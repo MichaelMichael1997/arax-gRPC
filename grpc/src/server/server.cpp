@@ -10,8 +10,6 @@ using grpc::Status;
 using grpc::StatusCode;
 using std::chrono::system_clock;
 
-using google::protobuf::Empty;
-
 using namespace arax;
 
 /*

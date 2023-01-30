@@ -1,7 +1,5 @@
 syntax = "proto3";
 
-import "google/protobuf/empty.proto";
-
 package arax;
     
 // ------------------------------ Arax Services -------------------------- 
@@ -11,7 +9,7 @@ service Arax{
     /*
     * Delete the shared segment
     */
-    rpc Arax_clean(google.protobuf.Empty) returns (google.protobuf.Empty){}
+    rpc Arax_clean(Empty) returns (Empty){}
 
     /*
     * Create an arax buffer object
@@ -42,12 +40,12 @@ service Arax{
     /*
     * Release a previously acquired accelerator
     */
-    rpc Arax_accel_release(ResourceID) returns (google.protobuf.Empty){}
+    rpc Arax_accel_release(ResourceID) returns (Empty){}
 
     /*
     * Set data to arax buffer
     */
-    rpc Arax_data_set(DataSet) returns (google.protobuf.Empty){}
+    rpc Arax_data_set(DataSet) returns (Empty){}
 
     /*
     * Return size of provided arax data 
@@ -67,12 +65,12 @@ service Arax{
     /*
     * Mark data for deletion
     */
-    rpc Arax_data_free(ResourceID) returns (google.protobuf.Empty) {}
+    rpc Arax_data_free(ResourceID) returns (Empty) {}
 
     /*
     * Decrease ref counter of task
     */
-    rpc Arax_task_free(TaskMessage) returns (google.protobuf.Empty){}
+    rpc Arax_task_free(TaskMessage) returns (Empty){}
 
     /*
     * Issue a new arax_task
@@ -87,7 +85,7 @@ service Arax{
     /*
     * Streaming version of data_set for large data
     */
-    rpc Arax_data_set_streaming(stream DataSet) returns (google.protobuf.Empty){}
+    rpc Arax_data_set_streaming(stream DataSet) returns (Empty){}
 
     /*
     * Initialize a new arax_data_s object
@@ -102,11 +100,12 @@ service Arax{
     /*
     * Initialize data remote (accelerator) buffer
     */
-    rpc Arax_data_allocate_remote(DataSet) returns (google.protobuf.Empty) {}
+    rpc Arax_data_allocate_remote(DataSet) returns (Empty) {}
 }
 
 
 // ------------------------------ Request messages -------------------------- 
+message Empty{}
 
 message Success{
   bool success = 1;

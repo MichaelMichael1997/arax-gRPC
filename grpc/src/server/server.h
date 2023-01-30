@@ -111,7 +111,7 @@ private:
      * @param res Empty message
      */
     grpc::Status Arax_data_set_streaming(grpc::ServerContext *ctx,
-      grpc::ServerReader<arax::DataSet> *reader, google::protobuf::Empty *res) override;
+      grpc::ServerReader<arax::DataSet> *reader, arax::Empty *res) override;
 
 public:
 
@@ -152,8 +152,8 @@ public:
      *
      * @return The appropriate status code
      */
-    grpc::Status Arax_clean(grpc::ServerContext *ctx, const google::protobuf::Empty *req,
-      google::protobuf::Empty *res) override;
+    grpc::Status Arax_clean(grpc::ServerContext *ctx, const arax::Empty *req,
+      arax::Empty *res) override;
 
     /*
      * Create an arax_buffer_s object
@@ -229,7 +229,7 @@ public:
      * @return The appropriate status code
      */
     grpc::Status Arax_accel_release(grpc::ServerContext *ctx,
-      const arax::ResourceID *req, google::protobuf::Empty *res) override;
+      const arax::ResourceID *req, arax::Empty *res) override;
 
     /*
      * Copy data to buffer
@@ -239,7 +239,7 @@ public:
      * @param res Success message, contains true if operation successfull, false otherwise
      */
     grpc::Status Arax_data_set(grpc::ServerContext *ctx,
-      const arax::DataSet *req, google::protobuf::Empty *res) override;
+      const arax::DataSet *req, arax::Empty *res) override;
 
     /*
      * Get data from buffer and return them to user
@@ -286,7 +286,7 @@ public:
      * @param res Empty message
      */
     grpc::Status Arax_data_free(grpc::ServerContext *ctx,
-      const arax::ResourceID *req, google::protobuf::Empty *res) override;
+      const arax::ResourceID *req, arax::Empty *res) override;
 
     /*
      * Issue a new arax task
@@ -310,7 +310,7 @@ public:
      * @return The appropriate status code
      */
     grpc::Status Arax_task_free(grpc::ServerContext *ctx,
-      const arax::TaskMessage *req, google::protobuf::Empty *res) override;
+      const arax::TaskMessage *req, arax::Empty *res) override;
 
     /*
      * Wait for an issued task to complete or fail
@@ -358,7 +358,7 @@ public:
      * @return The appropriate status code
      */
     grpc::Status Arax_data_allocate_remote(grpc::ServerContext *ctx,
-      const arax::DataSet *req, google::protobuf::Empty *res) override;
+      const arax::DataSet *req, arax::Empty *res) override;
 };
 
 #endif /* #ifndef SERVER_H */

@@ -9,8 +9,6 @@ using grpc::CreateChannel;
 using grpc::InsecureChannelCredentials;
 using grpc::Status;
 
-using google::protobuf::Empty;
-
 using namespace arax;
 
 /*
