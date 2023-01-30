@@ -1,26 +1,33 @@
 #include "../arax_grpc_client/arax_grpc_client.h"
 
-// -- Arax header files --
 #include <arax.h>
 #include <arax_pipe.h>
 #include <arax_types.h>
 #include <core/arax_data.h>
 
-#define ARR_SIZE 4000000
+#define ARR_SIZE 800000
 
 using namespace arax;
+
+#define VAR 2.0f
 
 typedef uint64_t Task;
 typedef uint64_t Buffer;
 typedef uint64_t Proc;
 typedef uint64_t Accel;
 
-void process_arr(float *arr)
+void process_arr(float *arr, int num)
 {
     for (int i = 0; i < ARR_SIZE; i++) {
-        arr[i] *= 2;
+        arr[i] *= num;
     }
 }
+
+typedef struct Host
+{
+    size_t host_size;
+    int    i;
+} Host;
 
 #ifdef BUILD_MAIN
 int main(int argc, char *argv[])
@@ -29,36 +36,31 @@ int main(int argc, char *argv[])
 
     size_t size = ARR_SIZE * sizeof(float);
     float *p    = (float *) malloc(size);
-    float *init = (float *) malloc(size);
 
     for (int i = 0; i < ARR_SIZE; i++) {
-        p[i]    = i / 2.0f;
-        init[i] = i / 2.0f;
-        // printf("%f ", p[i]);
+        p[i] = i / VAR;
     }
     printf("\n");
 
-    /* -- Request buffer -- */
     Buffer io[1] = {
-        client.client_arax_buffer(size)
+        client.client_arax_data_init_aligned(size, 64)
     };
 
-    /* -- Request accelerator -- */
     Accel accel = client.client_arax_accel_acquire_type(CPU);
+    Proc proc   = client.client_arax_proc_get("float_array");
 
-    /* -- Get registered process -- */
-    Proc proc = client.client_arax_proc_get("float_array");
-
-    /* -- Failed to retrieve registered process -- */
     if (proc == 0) {
         exit(EXIT_FAILURE);
     }
 
     client.client_arax_data_set(io[0], accel, p, size);
 
-    // /* -- Issue task -- */
-    Task task = client.client_arax_task_issue(accel, proc, 0, 0, 1, io, 1, io);
+    Host host;
 
+    host.i         = VAR;
+    host.host_size = sizeof(host);
+
+    Task task      = client.client_arax_task_issue(accel, proc, &host, sizeof(host), 1, io, 1, io);
     int task_state = client.client_arax_task_wait(task);
 
     fprintf(stdout, "\n======================\n");
@@ -66,34 +68,27 @@ int main(int argc, char *argv[])
     fprintf(stdout, "======================\n\n");
     fprintf(stdout, "Task state returned by client_arax_task_wait: %d\n", task_state);
 
-    if (task_state == 0 || task_state == -1) { /* -- task failed -- */
+    if (task_state == 0 || task_state == -1) {
         fprintf(stderr, "Task failed\n");
-        client.client_arax_data_free(io[0]);
-        client.client_arax_task_free(task);
-        client.client_arax_proc_put(proc);
-        client.client_arax_accel_release(accel);
-
-        exit(EXIT_FAILURE);
+        goto EXIT;
     }
 
-    // client.client_arax_data_get(io[0], p);
+    std::cerr << "Size for data get: " << size << '\n';
+    client.client_arax_data_get(io[0], p, size);
     client.client_arax_data_get(io[0], p, size);
 
-    printf("After data_get\n");
     for (int i = 0; i < ARR_SIZE; i++) {
-        // printf("%f ", p[i]);
-        assert(p[i] == 2 * init[i]);
+        assert(p[i] == i);
     }
-    printf("\n");
+    fprintf(stderr, "-- Arrays are the same\n");
 
-    /* -- Free the resources -- */
+EXIT:
     client.client_arax_data_free(io[0]);
     client.client_arax_task_free(task);
     client.client_arax_proc_put(proc);
     client.client_arax_accel_release(accel);
 
     free(p);
-    free(init);
 
     return 0;
 } // main
@@ -107,11 +102,13 @@ int main(int argc, char *argv[])
 
 arax_task_state_e float_array(arax_task_msg_s *msg)
 {
+    Host host = *(Host *) arax_task_host_data(msg, sizeof(Host));
+
     // proc_t proc  = *(proc_t *) arax_data_deref(msg->io[0]);
     float *arr = (float *) arax_data_deref(msg->io[0]);
 
     // block_process(proc);
-    process_arr(arr);
+    process_arr(arr, host.i);
 
     arax_task_mark_done(msg, task_completed);
     return task_completed;

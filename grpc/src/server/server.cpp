@@ -480,9 +480,10 @@ Status AraxServer::Arax_large_data_get(ServerContext *ctx, const ResourceID *req
     }
 
     size_t size = arax_data_size(buffers[id]);
+    std::cerr << "Size in large data get: " << size << '\n';
 
     // Alocate memory for the data to be copied
-    void *data = (void *) malloc(size);
+    void *data = malloc(size);
 
     #ifdef DEBUG
     assert(data);
@@ -506,30 +507,30 @@ Status AraxServer::Arax_large_data_get(ServerContext *ctx, const ResourceID *req
         return Status(StatusCode::CANCELLED, error_msg);
     }
 
-    std::string data_str((char *) data, size);
+    DataSet original;
+    original.set_data(data, size);
+    DataSet chunk;
 
     /* -- Split the data into chunks of 1 MAX_MSG each-- */
-    size = data_str.size();
     long int remaining = size;
-    size_t it      = 0;
-    int iterations = 0;
+    size_t it          = 0;
+    int iterations     = 0;
 
     fprintf(stderr, "It %zu, Current sent %zu, Remaining %ld Iterations %d\n", it, it, remaining, iterations);
     while (it < size) {
-        std::string chunk;
         /* -- Less than 1 MAX_MSG remains -- */
         if (remaining < MAX_MSG) {
-            chunk     = data_str.substr(it, remaining);
+            chunk.set_data(original.data().substr(it, remaining));
             it       += remaining;
             remaining = 0; /* -- no more to send -- */
         } else {
-            chunk      = data_str.substr(it, MAX_MSG);
+            chunk.set_data(original.data().substr(it, MAX_MSG));
             it        += MAX_MSG;
             remaining -= MAX_MSG;
         }
 
         DataSet d;
-        d.set_data(chunk);
+        d.set_data(chunk.data());
         d.set_data_size(size); // --> The original data size
 
         if (!writer->Write(d)) {
@@ -711,7 +712,6 @@ Status AraxServer::Arax_task_issue(ServerContext *ctx, const TaskRequest *req, R
         task = arax_task_issue(exec, process, host_init, host_size, in_count, in_buffer, out_count, out_buffer);
     }
 
-
     if (task == NULL) {
         std::string error_msg("-- Failed to issue task (in arax task issue)--");
         return Status(StatusCode::ABORTED, error_msg);
@@ -808,7 +808,6 @@ Status AraxServer::Arax_data_set_streaming(ServerContext *ctx, ServerReader<Data
         client_data += data.data();
     }
 
-    /* -- This probably shoud cause any issue, remember it if anything weird happens though -- */
     uint64_t buffer = data.buffer();
     uint64_t accel  = data.accel();
 
@@ -904,6 +903,43 @@ Status AraxServer::Arax_data_init_aligned(ServerContext *ctx, const AraxData *re
 
     res->set_id(get_unique_id());
     insert_pair(buffers, res->id(), buffer);
+
+    return Status::OK;
+}
+
+/*
+ * Initialize data remote (accelerator) buffer
+ *
+ * @param ctx Server Context
+ * @param req DataSet message with the buffer and accelerator identifiers
+ * @param res Empty message
+ *
+ * @return The appropriate status code
+ */
+Status AraxServer::Arax_data_allocate_remote(ServerContext *ctx, const DataSet *req, Empty *res)
+{
+    #ifdef DEBUG
+    assert(ctx);
+    assert(req);
+    assert(res);
+    #endif
+
+    uint64_t buffer = req->buffer();
+    uint64_t accel  = req->accel();
+
+    if (!check_if_exists(buffers, buffer)) {
+        std::string error_msg("-- No buffer exists with ID'" + std::to_string(buffer) + "' (in data set)--");
+        return Status(StatusCode::INVALID_ARGUMENT, error_msg);
+    }
+
+    if (!check_if_exists(arax_accels, accel)) {
+        std::string error_msg("-- No accelerator with ID'" + std::to_string(accel) + "' exists (in data set)--");
+        return Status(StatusCode::INVALID_ARGUMENT, error_msg);
+    }
+
+    arax_buffer_s buffer_s  = buffers[buffer];
+    arax_accel *accelerator = arax_accels[accel];
+    arax_data_allocate_remote((arax_data_s *) buffer_s, accelerator);
 
     return Status::OK;
 }

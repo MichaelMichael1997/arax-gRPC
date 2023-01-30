@@ -35,6 +35,7 @@
 #include <arax.h>
 #include <arax_pipe.h>
 #include <core/arax_data.h>
+#include <core/arax_data_private.h>
 
 // ---------------------------------- Arax Service Class --------------------------------------
 
@@ -346,6 +347,18 @@ public:
      */
     grpc::Status Arax_data_init_aligned(grpc::ServerContext *ctx,
       const arax::AraxData *req, arax::ResourceID *res) override;
+
+    /*
+     * Initialize data remote (accelerator) buffer
+     *
+     * @param ctx Server Context
+     * @param req DataSet message with the buffer and accelerator identifiers
+     * @param res Empty message
+     *
+     * @return The appropriate status code
+     */
+    grpc::Status Arax_data_allocate_remote(grpc::ServerContext *ctx,
+      const arax::DataSet *req, google::protobuf::Empty *res) override;
 };
 
 #endif /* #ifndef SERVER_H */

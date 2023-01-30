@@ -229,6 +229,16 @@ public:
      */
     [[nodiscard("-- Arax data_s identifier returned, but it was discarded --")]]
     uint64_t client_arax_data_init_aligned(size_t size, size_t align);
+
+    /*
+     * Initialize data remote (accelerator) buffer
+     *
+     * @param buffer The arax buffer
+     * @param accel  The accelerator
+     *
+     * @return void
+     */
+    void client_arax_data_allocate_remote(uint64_t buffer, uint64_t accel);
 }; /* class AraxClient */
 
 

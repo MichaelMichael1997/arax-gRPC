@@ -8,102 +8,105 @@ package arax;
 
 service Arax{
 
- /*
-  * Delete the shared segment
-  */
-  rpc Arax_clean(google.protobuf.Empty) returns (google.protobuf.Empty){}
+    /*
+    * Delete the shared segment
+    */
+    rpc Arax_clean(google.protobuf.Empty) returns (google.protobuf.Empty){}
 
- /*
-  * Create an arax buffer object
-  *
-  */
-  rpc Arax_buffer(RequestBuffer) returns (ResourceID) {}
+    /*
+    * Create an arax buffer object
+    *
+    */
+    rpc Arax_buffer(RequestBuffer) returns (ResourceID) {}
 
- /*
-  * Register a new process 'func name'
-  */
-  rpc Arax_proc_register(ProcRequest) returns (ResourceID) {}
+    /*
+    * Register a new process 'func name'
+    */
+    rpc Arax_proc_register(ProcRequest) returns (ResourceID) {}
 
- /*
-  * Retrieve a previously registered process
-  */
-  rpc Arax_proc_get(ProcRequest) returns (ResourceID) {}
+    /*
+    * Retrieve a previously registered process
+    */
+    rpc Arax_proc_get(ProcRequest) returns (ResourceID) {}
 
- /*
-  * Delete registered arax_proc pointer
-  */
-  rpc Arax_proc_put(AraxProc) returns (ProcCounter){}
+    /*
+    * Delete registered arax_proc pointer
+    */
+    rpc Arax_proc_put(AraxProc) returns (ProcCounter){}
 
- /*
-  * Acquire a virtual accelerator of a given type
-  */
-  rpc Arax_accel_acquire_type(AccelRequest) returns (ResourceID){}
+    /*
+    * Acquire a virtual accelerator of a given type
+    */
+    rpc Arax_accel_acquire_type(AccelRequest) returns (ResourceID){}
 
- /*
-  * Release a previously acquired accelerator
-  */
-  rpc Arax_accel_release(ResourceID) returns (google.protobuf.Empty){}
+    /*
+    * Release a previously acquired accelerator
+    */
+    rpc Arax_accel_release(ResourceID) returns (google.protobuf.Empty){}
 
-  /*
-   * Set data to arax buffer
-   */
-   rpc Arax_data_set(DataSet) returns (google.protobuf.Empty){}
+    /*
+    * Set data to arax buffer
+    */
+    rpc Arax_data_set(DataSet) returns (google.protobuf.Empty){}
 
-  /*
-   * Return size of provided arax data 
-   */
-   rpc Arax_data_size(ResourceID) returns (DataSet) {}
+    /*
+    * Return size of provided arax data 
+    */
+    rpc Arax_data_size(ResourceID) returns (DataSet) {}
 
-  /*
-   * Get the data from buffer and return them
-   */
-   rpc Arax_data_get(ResourceID) returns (DataSet) {}
+    /*
+    * Get the data from buffer and return them
+    */
+    rpc Arax_data_get(ResourceID) returns (DataSet) {}
 
-  /*
-   * Same as Arax_data_get, but used when anticipating large output (over 1 MB in size)
-   */
-   rpc Arax_large_data_get(ResourceID) returns (stream DataSet){}
+    /*
+    * Same as Arax_data_get, but used when anticipating large output (over 1 MB in size)
+    */
+    rpc Arax_large_data_get(ResourceID) returns (stream DataSet){}
 
-  /*
-   * Mark data for deletion
-   */
-   rpc Arax_data_free(ResourceID) returns (google.protobuf.Empty) {}
+    /*
+    * Mark data for deletion
+    */
+    rpc Arax_data_free(ResourceID) returns (google.protobuf.Empty) {}
 
-  /*
-   * Decrease ref counter of task
-   */
-   rpc Arax_task_free(TaskMessage) returns (google.protobuf.Empty){}
+    /*
+    * Decrease ref counter of task
+    */
+    rpc Arax_task_free(TaskMessage) returns (google.protobuf.Empty){}
 
-  /*
-   * Issue a new arax_task
-   */
-   rpc Arax_task_issue(TaskRequest) returns (ResourceID){}
+    /*
+    * Issue a new arax_task
+    */
+    rpc Arax_task_issue(TaskRequest) returns (ResourceID){}
 
-   /*
+    /*
     * Wait for an issued task to complete or fail
     */
     rpc Arax_task_wait(TaskMessage) returns (TaskMessage){}
 
-   /*
+    /*
     * Streaming version of data_set for large data
     */
     rpc Arax_data_set_streaming(stream DataSet) returns (google.protobuf.Empty){}
 
-   /*
+    /*
     * Initialize a new arax_data_s object
     */
     rpc Arax_data_init(AraxData) returns (ResourceID) {}
 
-   /*
+    /*
     * Initialize a new arax_data_s object with an alligned buffer
     */
     rpc Arax_data_init_aligned(AraxData) returns (ResourceID) {}
+
+    /*
+    * Initialize data remote (accelerator) buffer
+    */
+    rpc Arax_data_allocate_remote(DataSet) returns (google.protobuf.Empty) {}
 }
 
 
 // ------------------------------ Request messages -------------------------- 
-// TODO:Request/Response messages are all over the place right now
-// Could 'combine' some of them into one, for example a unified Request/Response message 
 
 message Success{
   bool success = 1;

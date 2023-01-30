@@ -35,7 +35,7 @@ cd arax/build
 make noop noop_stress
 
 echo "shm_file $USER" > ~/.arax
-echo "shm_size 67108864" >> ~/.arax
+echo "shm_size 268435456" >> ~/.arax # from 64 to  Megabytes
 cat >cpu.json <<EOF
 {
   "paths": ["testing"],

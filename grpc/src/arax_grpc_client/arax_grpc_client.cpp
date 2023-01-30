@@ -4,13 +4,11 @@
 using grpc::Channel;
 using grpc::ClientContext;
 using grpc::ClientReader;
-using grpc::ClientReaderWriter;
 using grpc::ClientWriter;
 using grpc::CreateChannel;
 using grpc::InsecureChannelCredentials;
 using grpc::Status;
 
-using google::protobuf::Arena;
 using google::protobuf::Empty;
 
 using namespace arax;
@@ -24,12 +22,10 @@ using namespace arax;
 #define RESET_COL   "\033[0m"
 #endif /* #ifdef __linux__ */
 
-/* -- Max size for a protocol buffer message -- */
 // #define MAX_MSG 1048576 // --> 1 MB
-// #define MAX_MSG 524288 // --> 0.5 MB
 
-constexpr long int MAX_MSG = 524288;
-constexpr unsigned int base_deadline = 1000;
+constexpr long int MAX_MSG = 524288;          // -> 0.5 MB
+// constexpr unsigned int base_deadline = 20000; // -> Large base_deadlline for now, change later
 
 /*
  * Constructors
@@ -55,10 +51,6 @@ void AraxClient::client_arax_clean()
     Empty req;
     Empty res;
 
-    std::chrono::time_point<std::chrono::system_clock> deadline = std::chrono::system_clock::now()
-      + std::chrono::milliseconds(base_deadline); // base_deadline is 10s
-
-    ctx.set_deadline(deadline);
 
     Status status = stub_->Arax_clean(&ctx, req, &res);
 
@@ -100,11 +92,6 @@ uint64_t AraxClient::client_arax_buffer(size_t size)
     req.set_buffer_size(size);
     ResourceID res;
 
-    std::chrono::time_point<std::chrono::system_clock> deadline = std::chrono::system_clock::now()
-      + std::chrono::milliseconds(base_deadline); // base_deadline is 10s
-
-    ctx.set_deadline(deadline);
-
     Status status = stub_->Arax_buffer(&ctx, req, &res);
 
     if (!status.ok()) {
@@ -141,11 +128,6 @@ uint64_t AraxClient::client_arax_proc_register(const char *func_name)
 
     req.set_func_name(func_name);
     ResourceID res;
-
-    std::chrono::time_point<std::chrono::system_clock> deadline = std::chrono::system_clock::now()
-      + std::chrono::milliseconds(base_deadline); // base_deadline is 10s
-
-    ctx.set_deadline(deadline);
 
     Status status = stub_->Arax_proc_register(&ctx, req, &res);
 
@@ -187,11 +169,6 @@ uint64_t AraxClient::client_arax_proc_get(const char *func_name)
 
     req.set_func_name(func_name);
 
-    std::chrono::time_point<std::chrono::system_clock> deadline = std::chrono::system_clock::now()
-      + std::chrono::milliseconds(base_deadline); // base_deadline is 10s
-
-    ctx.set_deadline(deadline);
-
     Status status = stub_->Arax_proc_get(&ctx, req, &res);
 
     if (!status.ok()) {
@@ -231,11 +208,6 @@ void AraxClient::client_arax_proc_put(uint64_t id)
     req.set_id(id);
     ProcCounter res;
 
-    std::chrono::time_point<std::chrono::system_clock> deadline = std::chrono::system_clock::now()
-      + std::chrono::milliseconds(base_deadline); // base_deadline is 10s
-
-    ctx.set_deadline(deadline);
-
     Status status = stub_->Arax_proc_put(&ctx, req, &res);
 
     if (!status.ok()) {
@@ -272,11 +244,6 @@ uint64_t AraxClient::client_arax_accel_acquire_type(unsigned int type)
     req.set_type(type);
     ResourceID res;
     ClientContext ctx;
-
-    std::chrono::time_point<std::chrono::system_clock> deadline = std::chrono::system_clock::now()
-      + std::chrono::milliseconds(base_deadline); // base_deadline is 10s
-
-    ctx.set_deadline(deadline);
 
     Status status = stub_->Arax_accel_acquire_type(&ctx, req, &res);
 
@@ -315,11 +282,6 @@ void AraxClient::client_arax_accel_release(uint64_t id)
     Empty res;
 
     req.set_id(id);
-
-    std::chrono::time_point<std::chrono::system_clock> deadline = std::chrono::system_clock::now()
-      + std::chrono::milliseconds(base_deadline); // base_deadline is 10s
-
-    ctx.set_deadline(deadline);
 
     Status status = stub_->Arax_accel_release(&ctx, req, &res);
 
@@ -375,11 +337,6 @@ void AraxClient::client_arax_data_set(uint64_t buffer, uint64_t accel, void *dat
     Empty res;
     ClientContext ctx;
 
-    std::chrono::time_point<std::chrono::system_clock> deadline = std::chrono::system_clock::now()
-      + std::chrono::milliseconds(base_deadline); // base_deadline is 10s
-
-    ctx.set_deadline(deadline);
-
     if (!data) {
         fprintf(stderr, "-- Invalid data entered\n");
         return;
@@ -433,12 +390,6 @@ void AraxClient::client_arax_data_get(uint64_t buffer, void *user, size_t size)
         return;
     }
 
-    /* -- Set deadline -- */
-    std::chrono::time_point<std::chrono::system_clock> deadline = std::chrono::system_clock::now()
-      + std::chrono::milliseconds(base_deadline); // base_deadline is 10s
-
-    ctx.set_deadline(deadline);
-
     req.set_id(buffer);
 
     Status status = stub_->Arax_data_get(&ctx, req, &res);
@@ -480,8 +431,6 @@ void AraxClient::client_arax_large_data_get(uint64_t buffer, void *user, size_t 
 
     req.set_id(buffer);
 
-    /* -- TODO: Set deadline here -- */
-
     std::unique_ptr<ClientReader<DataSet> > reader(stub_->Arax_large_data_get(&ctx, req));
     std::string data("");
     DataSet d;
@@ -490,12 +439,6 @@ void AraxClient::client_arax_large_data_get(uint64_t buffer, void *user, size_t 
     while (reader->Read(&d)) {
         data += d.data();
     }
-
-    /* Give some extra time for larger data */
-    std::chrono::time_point<std::chrono::system_clock> deadline = std::chrono::system_clock::now()
-      + std::chrono::milliseconds(base_deadline + (size >> 10) / 2); // base_deadline is 10s
-
-    ctx.set_deadline(deadline);
 
     Status status = reader->Finish();
 
@@ -536,11 +479,6 @@ size_t AraxClient::client_arax_data_size(uint64_t id)
 
     req.set_id(id);
 
-    std::chrono::time_point<std::chrono::system_clock> deadline = std::chrono::system_clock::now()
-      + std::chrono::milliseconds(base_deadline); // base_deadline is 10s
-
-    ctx.set_deadline(deadline);
-
     Status status = stub_->Arax_data_size(&ctx, req, &res);
 
     if (!status.ok()) {
@@ -578,11 +516,6 @@ void AraxClient::client_arax_data_free(uint64_t id)
     Empty res;
 
     req.set_id(id);
-
-    std::chrono::time_point<std::chrono::system_clock> deadline = std::chrono::system_clock::now()
-      + std::chrono::milliseconds(base_deadline); // base_deadline is 10s
-
-    ctx.set_deadline(deadline);
 
     Status status = stub_->Arax_data_free(&ctx, req, &res);
 
@@ -664,11 +597,6 @@ uint64_t AraxClient::client_arax_task_issue(uint64_t accel, uint64_t proc, void 
         req.add_out_buffer(*(out_buffer + i));
     }
 
-    std::chrono::time_point<std::chrono::system_clock> deadline = std::chrono::system_clock::now()
-      + std::chrono::milliseconds(base_deadline); // base_deadline is 10s
-
-    ctx.set_deadline(deadline);
-
     Status status = stub_->Arax_task_issue(&ctx, req, &res);
 
     if (!status.ok()) {
@@ -705,11 +633,6 @@ void AraxClient::client_arax_task_free(uint64_t task)
     Empty res;
 
     req.set_task_id(task);
-
-    std::chrono::time_point<std::chrono::system_clock> deadline = std::chrono::system_clock::now()
-      + std::chrono::milliseconds(base_deadline); // base_deadline is 10s
-
-    ctx.set_deadline(deadline);
 
     Status status = stub_->Arax_task_free(&ctx, req, &res);
 
@@ -748,12 +671,6 @@ int AraxClient::client_arax_task_wait(uint64_t task)
     TaskMessage res;
 
     req.set_task_id(task);
-
-    std::chrono::time_point<std::chrono::system_clock> deadline = std::chrono::system_clock::now()
-      + std::chrono::milliseconds(base_deadline); // base_deadline is 10s
-
-    ctx.set_deadline(deadline);
-
     Status status = stub_->Arax_task_wait(&ctx, req, &res);
 
     if (!status.ok()) {
@@ -790,20 +707,12 @@ void AraxClient::large_data_set(uint64_t buffer, uint64_t accel, void *data, siz
     ClientContext ctx;
     Empty res;
 
-    std::string data_str((char *) data, size);
+    DataSet original;
 
-    // /* -- Set a deadline  relative to the size of input in kilobytes -- */
-    // // std::chrono::time_point<std::chrono::system_clock> deadline = std::chrono::system_clock::now()
-    // //   + std::chrono::milliseconds(5000 + (size >> 10)); // --> 5 seconds plus extra for larger data
-
-    // // ctx.set_deadline(deadline);
+    original.set_data(data, size);
+    DataSet chunk;
 
     /* For large data, give some extra time */
-    std::chrono::time_point<std::chrono::system_clock> deadline = std::chrono::system_clock::now()
-      + std::chrono::milliseconds(base_deadline + (size >> 10) / 2); // base_deadline is 10s
-
-    ctx.set_deadline(deadline);
-
     // /* -- Get the number of chunks, for debugging purposes -- */
     unsigned int chunks_num = ceil(float(size) / float(MAX_MSG));
 
@@ -820,20 +729,19 @@ void AraxClient::large_data_set(uint64_t buffer, uint64_t accel, void *data, siz
 
     fprintf(stderr, "It %zu, Current sent %zu, Remaining %ld Iterations %d\n", it, it, remaining, iterations);
     while (it < size) {
-        std::string chunk;
         /* -- Less than 1 MAX_MSG remains -- */
         if (remaining < MAX_MSG) {
-            chunk     = data_str.substr(it, remaining);
+            chunk.set_data(original.data().substr(it, remaining));
             it       += remaining;
             remaining = 0; /* -- no more to send -- */
         } else {
-            chunk      = data_str.substr(it, MAX_MSG);
+            chunk.set_data(original.data().substr(it, MAX_MSG));
             it        += MAX_MSG;
             remaining -= MAX_MSG;
         }
 
         DataSet d;
-        d.set_data(chunk);
+        d.set_data(chunk.data());
         d.set_data_size(size); // --> The original data size
         d.set_buffer(buffer);
         d.set_accel(accel);
@@ -888,11 +796,6 @@ uint64_t AraxClient::client_arax_data_init(size_t size)
 
     req.set_size(size);
 
-    std::chrono::time_point<std::chrono::system_clock> deadline = std::chrono::system_clock::now()
-      + std::chrono::milliseconds(base_deadline); // base_deadline is 10s
-
-    ctx.set_deadline(deadline);
-
     Status status = stub_->Arax_data_init(&ctx, req, &res);
 
     if (!status.ok()) {
@@ -932,11 +835,6 @@ uint64_t AraxClient::client_arax_data_init_aligned(size_t size, size_t align)
     req.set_size(size);
     req.set_alligned(align);
 
-    std::chrono::time_point<std::chrono::system_clock> deadline = std::chrono::system_clock::now()
-      + std::chrono::milliseconds(base_deadline); // base_deadline is 10s
-
-    ctx.set_deadline(deadline);
-
     Status status = stub_->Arax_data_init_aligned(&ctx, req, &res);
 
     if (!status.ok()) {
@@ -958,3 +856,40 @@ uint64_t AraxClient::client_arax_data_init_aligned(size_t size, size_t align)
 
     return res.id();
 } // AraxClient::client_arax_data_init_aligned
+
+/*
+ * Initialize data remote (accelerator) buffer
+ *
+ * @param buffer The arax buffer
+ * @param accel  The accelerator
+ *
+ * @return void
+ */
+void AraxClient::client_arax_data_allocate_remote(uint64_t buffer, uint64_t accel)
+{
+    DataSet req;
+    Empty res;
+    ClientContext ctx;
+
+    req.set_buffer(buffer);
+    req.set_accel(accel);
+
+    Status status = stub_->Arax_data_allocate_remote(&ctx, req, &res);
+
+    if (!status.ok()) {
+        #ifdef __linux__
+        std::stringstream ss;
+        ss << ERROR_COL;
+        ss << "\nERROR: " << status.error_code() << "\n";
+        ss << status.error_message() << "\n";
+        ss << status.error_details() << "\n\n";
+        ss << RESET_COL;
+        std::cerr << ss.str();
+        #else
+        std::cout << "\nERROR: " << status.error_code() << "\n";
+        std::cout << status.error_message() << "\n";
+        std::cout << status.error_details() << "\n\n";
+        #endif /* ifdef __linux__ */
+        return;
+    }
+}
