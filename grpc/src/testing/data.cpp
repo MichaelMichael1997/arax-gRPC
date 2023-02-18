@@ -40,7 +40,6 @@ int main(int argc, char *argv[])
     for (int i = 0; i < ARR_SIZE; i++) {
         p[i] = i / VAR;
     }
-    printf("\n");
 
     Buffer io[1] = {
         client.client_arax_data_init_aligned(size, 64)

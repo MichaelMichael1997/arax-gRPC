@@ -1,5 +1,4 @@
 # Build the tests and arax_controller dynamic libs (kernel ops)
-
 # Set the path to the Arax controller include directory
 set(ARAX_CONTROLLER_PATH ${CMAKE_CURRENT_BINARY_DIR}/../../../../controller)
 
@@ -23,8 +22,13 @@ target_include_directories(structlib PRIVATE ${ARAX_CONTROLLER_PATH}/include)
 target_compile_definitions(structlib PRIVATE BUILD_SO)
 target_link_libraries(structlib arax)
 
+add_library(stresslib SHARED stress.cpp)
+target_include_directories(stresslib PRIVATE ${ARAX_CONTROLLER_PATH}/include)
+target_compile_definitions(stresslib PRIVATE BUILD_SO)
+target_link_libraries(stresslib arax)
+
 # Create the executable and create link the library
-foreach(_target noop_grpc data struct)
+foreach(_target noop_grpc data struct clean_arax stress)
 	add_executable(${_target}
 			"${_target}.cpp" 
 		      )
@@ -32,12 +36,12 @@ foreach(_target noop_grpc data struct)
 	target_include_directories(${_target} PRIVATE ../../../build/include)
     target_include_directories(${_target} PRIVATE ${ARAX_CONTROLLER_PATH}/include)	
     target_compile_definitions(${_target} PRIVATE BUILD_MAIN)
-	target_link_libraries(${_target}
+	  target_link_libraries(${_target}
 			      arax
 			      pthread
-                  nooplib
-                  datalib
-                  structlib
+            nooplib
+            datalib
+            structlib
 			      ${_REFLECTION}
 			      ${_GRPC_GRPCPP}
 			      ${_PROTOBUF_LIBPROTOBUF}

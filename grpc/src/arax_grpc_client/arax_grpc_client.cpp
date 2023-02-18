@@ -1,7 +1,7 @@
 #include "arax_grpc_client.h"
 #include <cstdint>
+#include <grpcpp/security/credentials.h>
 
-using grpc::Channel;
 using grpc::ClientContext;
 using grpc::ClientReader;
 using grpc::ClientWriter;
@@ -20,17 +20,18 @@ using namespace arax;
 #define RESET_COL   "\033[0m"
 #endif /* #ifdef __linux__ */
 
-// #define MAX_MSG 1048576 // --> 1 MB
-
-constexpr long int MAX_MSG = 524288;          // -> 0.5 MB
-// constexpr unsigned int base_deadline = 20000; // -> Large base_deadlline for now, change later
+constexpr long int MAX_MSG = 524288;  
+constexpr long int CHANNEL_POOL = 10;  
 
 /*
  * Constructors
  */
 AraxClient::AraxClient(const char *addr)
 {
-    stub_ = Arax::NewStub(CreateChannel(addr, InsecureChannelCredentials()));
+  grpc::ChannelArguments args;
+  args.SetInt(GRPC_ARG_MAX_CONCURRENT_STREAMS, 200);
+  main_channel = grpc::CreateCustomChannel(addr, InsecureChannelCredentials(), args);
+  stub_ = Arax::NewStub(main_channel);
 }
 
 /*
@@ -39,6 +40,56 @@ AraxClient::AraxClient(const char *addr)
 AraxClient::~AraxClient(){ }
 
 // -------------------- Arax Client Services --------------------
+
+void AraxClient::set_reader_writer(){
+  this->stream = stub_->Arax_task_issue_streaming(&task_ctx);
+}
+
+void AraxClient::terminate_task_issue_streaming(){
+  stream->WritesDone();
+  Status status = stream->Finish();
+
+  if (!status.ok()) {
+    #ifdef __linux__
+    std::stringstream ss;
+    ss << ERROR_COL;
+    ss << "\nERROR: " << status.error_code() << "\n";
+    ss << status.error_message() << "\n";
+    ss << status.error_details() << "\n\n";
+    ss << RESET_COL;
+    std::cerr << ss.str();
+    #else
+    std::cerr << "\nERROR: " << status.error_code() << "\n";
+    std::cerr << status.error_message() << "\n";
+    std::cerr << status.error_details() << "\n\n";
+    #endif /* ifdef __linux__ */
+
+    return;
+  }
+}
+
+uint64_t AraxClient::client_arax_task_issue_streaming(uint64_t accel, uint64_t proc, void *host_init, size_t host_size,
+      size_t in_count,
+      uint64_t *in_buffer,
+      size_t out_count, uint64_t *out_buffer
+){
+  ResourceID res;
+  TaskRequest req;
+
+  req.set_accel(accel);
+  req.set_proc(proc);
+  req.set_in_count(in_count);
+  req.set_out_count(out_count);
+  req.set_host_init(host_init, host_size);
+  req.set_host_size(host_size);
+  req.set_in_buffer(in_buffer, in_count * sizeof(uint64_t));
+  req.set_out_buffer(out_buffer, out_count * sizeof(uint64_t));
+
+  stream->Write(req);
+  stream->Read(&res);
+
+  return res.id();
+}
 
 /*
  * Delete the shared segment
@@ -542,10 +593,10 @@ void AraxClient::client_arax_data_free(uint64_t id)
  * Issue a new task
  *
  * @param accel The ID of the accelerator responsible for executing the task
- * @param proc ID of the arax_proc to be dispatched on accelerator
- * @param in_count Size of input array (elements)
- * @param in_buffer Input buffer
- * @param out_count Size of output array (elements)
+ * @param proc       ID of the arax_proc to be dispatched on accelerator
+ * @param in_count   Size of input array (elements)
+ * @param in_buffer  Input buffer
+ * @param out_count  Size of output array (elements)
  * @param out_buffer Output buffer
  *
  * @return The ID of the new task of 0 on failure
@@ -557,43 +608,14 @@ uint64_t AraxClient::client_arax_task_issue(uint64_t accel, uint64_t proc, void 
     ResourceID res;
     ClientContext ctx;
 
-    if (in_buffer == 0 || out_buffer == 0) {
-        fprintf(stderr, "-- Pass valid arrays of Buffer identifiers --\n");
-        return 0;
-    }
-
     req.set_accel(accel);
     req.set_proc(proc);
     req.set_in_count(in_count);
     req.set_out_count(out_count);
-    /* -- Throws error when initilizing bytes with null -- */
-    if (host_init == 0) {
-        req.set_host_init("", 0);
-
-        /* -- Check for invalid input -- */
-        if (host_size != 0) {
-            fprintf(stderr, "-- Host data are NULL, but host size != 0 --\n");
-            return 0;
-        }
-    } else {
-        /* -- Check for invalid input -- */
-        if (host_size == 0) {
-            fprintf(stderr, "-- Host data not NULL, but host size == 0 --\n");
-            return 0;
-        }
-        req.set_host_init(host_init, host_size);
-    }
+    req.set_host_init(host_init, host_size);
     req.set_host_size(host_size);
-
-    /* pass the in buffers */
-    for (size_t i = 0; i < in_count; i++) {
-        req.add_in_buffer(*(in_buffer + i));
-    }
-
-    /* pass the out buffers */
-    for (size_t i = 0; i < out_count; i++) {
-        req.add_out_buffer(*(out_buffer + i));
-    }
+    req.set_in_buffer(in_buffer, in_count * sizeof(uint64_t));
+    req.set_out_buffer(out_buffer, out_count * sizeof(uint64_t));
 
     Status status = stub_->Arax_task_issue(&ctx, req, &res);
 
@@ -651,7 +673,6 @@ void AraxClient::client_arax_task_free(uint64_t task)
         return;
     }
 
-    std::cout << "-- Task was freed successfully\n";
     return;
 } // AraxClient::client_arax_task_free
 
@@ -710,22 +731,15 @@ void AraxClient::large_data_set(uint64_t buffer, uint64_t accel, void *data, siz
     original.set_data(data, size);
     DataSet chunk;
 
-    /* For large data, give some extra time */
-    // /* -- Get the number of chunks, for debugging purposes -- */
-    unsigned int chunks_num = ceil(float(size) / float(MAX_MSG));
-
-    std::cout << "-- Number of chunks to send: " << chunks_num << "--\n";
-    std::cout << "-- Data size in megabytes: " << (size >> 20) << "\n";
-
     // /* -- write to stream for server -- */
     std::unique_ptr<ClientWriter<DataSet> > writer(stub_->Arax_data_set_streaming(&ctx, &res));
 
     // /* -- Split the data into chunks of 1 MAX_MSG each-- */
     long int remaining = size;
     size_t it      = 0;
-    int iterations = 0;
+    // int iterations = 0;
 
-    fprintf(stderr, "It %zu, Current sent %zu, Remaining %ld Iterations %d\n", it, it, remaining, iterations);
+    // fprintf(stderr, "It %zu, Current sent %zu, Remaining %ld Iterations %d\n", it, it, remaining, iterations);
     while (it < size) {
         /* -- Less than 1 MAX_MSG remains -- */
         if (remaining < MAX_MSG) {
@@ -744,20 +758,20 @@ void AraxClient::large_data_set(uint64_t buffer, uint64_t accel, void *data, siz
         d.set_buffer(buffer);
         d.set_accel(accel);
 
-        if (!writer->Write(d)) {
+        if (!writer->Write(d, grpc::WriteOptions().set_buffer_hint())) {
             std::cerr << "-- Stream broke\n";
             break;
         }
 
-        iterations += 1;
-        fprintf(stderr, "It %zu, Current sent %zu, Remaining %ld Iterations %d\n", it, it, remaining, iterations);
+        // iterations += 1;
+        // fprintf(stderr, "It %zu, Current sent %zu, Remaining %ld Iterations %d\n", it, it, remaining, iterations);
     }
 
     // std::cerr << "Loop iterations " << iterations << "\n";
 
     writer->WritesDone();
 
-    fprintf(stderr, "Finished streaming!\n");
+    // fprintf(stderr, "Finished streaming!\n");
 
     Status status = writer->Finish();
 

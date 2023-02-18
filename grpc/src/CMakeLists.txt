@@ -6,6 +6,8 @@ cmake_minimum_required(VERSION 3.13)
 # project name
 project(g_arax VERSION 1.0.0)
 
+message(STATUS "Using build type ${CMAKE_BUILD_TYPE}")
+
 # -- Uncomment to include gRPC as a dependency, rather than installing it locally --
 # include(FetchContent)
 
@@ -119,4 +121,4 @@ target_link_libraries(${PROJECT_NAME} PRIVATE grpc++)
 
 
 # -- Build tests --
-# add_subdirectory(testing)
+add_subdirectory(testing)

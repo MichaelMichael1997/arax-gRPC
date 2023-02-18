@@ -359,6 +359,18 @@ public:
      */
     grpc::Status Arax_data_allocate_remote(grpc::ServerContext *ctx,
       const arax::DataSet *req, arax::Empty *res) override;
+
+    /*
+     * Method to call multiple task_issues in a single stream
+     *
+     * @param ctx Server Context
+     * @param req stream ServerReaderWriter object to read from and
+     *                   write to the client
+     *
+     * @return The appropriate status code
+     */
+    grpc::Status Arax_task_issue_streaming(grpc::ServerContext* ctx, 
+                 grpc::ServerReaderWriter<arax::ResourceID, arax::TaskRequest>* stream) override;
 };
 
 #endif /* #ifndef SERVER_H */
