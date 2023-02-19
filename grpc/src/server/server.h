@@ -369,8 +369,8 @@ public:
      *
      * @return The appropriate status code
      */
-    grpc::Status Arax_task_issue_streaming(grpc::ServerContext* ctx, 
-                 grpc::ServerReaderWriter<arax::ResourceID, arax::TaskRequest>* stream) override;
+    grpc::Status Arax_task_issue_streaming(grpc::ServerContext *     ctx,
+      grpc::ServerReaderWriter<arax::ResourceID, arax::TaskRequest> *stream) override;
 };
 
 #endif /* #ifndef SERVER_H */

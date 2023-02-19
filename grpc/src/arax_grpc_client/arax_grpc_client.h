@@ -29,16 +29,15 @@
 // -------------------- Arax Client Class --------------------
 
 
-
 class AraxClient {
 private:
     std::unique_ptr<arax::Arax::Stub> stub_;
     std::shared_ptr<grpc::Channel> main_channel;
 
     /* ReaderWriter for the client. Used for task_issues streaming */
-    std::shared_ptr<grpc::ClientReaderWriter<arax::TaskRequest, arax::ResourceID>> stream;
+    std::shared_ptr<grpc::ClientReaderWriter<arax::TaskRequest, arax::ResourceID> > stream;
 
-    grpc::ClientContext task_ctx;
+    grpc::ClientContext* task_ctx = 0;
 
     /*
      * Function to fragment the data into messages
@@ -91,10 +90,10 @@ public:
      * @ same params as task_issue
      * @return The task ID
      */
-     uint64_t client_arax_task_issue_streaming(uint64_t accel, uint64_t proc, void *host_init, size_t host_size,
-                                              size_t in_count,
-                                              uint64_t *in_buffer,
-                                              size_t out_count, uint64_t *out_buffer);
+    uint64_t client_arax_task_issue_streaming(uint64_t accel, uint64_t proc, void *host_init, size_t host_size,
+      size_t in_count,
+      uint64_t *in_buffer,
+      size_t out_count, uint64_t *out_buffer);
 
     /*
      * Delete the shared segment

@@ -11,18 +11,13 @@ using grpc::StatusCode;
 
 using namespace arax;
 
-/*
- * Add some colors for the output
- */
 #ifdef __linux__
 #define ERROR_COL   "\033[1;38;5;9;1m"
 #define SUCCESS_COL "\033[1;37;38;5;10m"
 #define RESET_COL   "\033[0m"
 #endif /* #ifdef __linux__ */
 
-// #define MAX_MSG 524288
-
-constexpr long int MAX_MSG = 524288;
+constexpr long int MAX_PAYLOAD = 524288;
 
 /*
  * Constructor to start the server and init arax
@@ -503,22 +498,22 @@ Status AraxServer::Arax_large_data_get(ServerContext *ctx, const ResourceID *req
     original.set_data(data, size);
     DataSet chunk;
 
-    /* -- Split the data into chunks of 1 MAX_MSG each-- */
+    /* -- Split the data into chunks of 1 MAX_PAYLOAD each-- */
     long int remaining = size;
-    size_t it          = 0;
+    size_t it = 0;
     // int iterations     = 0;
 
     // fprintf(stderr, "It %zu, Current sent %zu, Remaining %ld Iterations %d\n", it, it, remaining, iterations);
     while (it < size) {
-        /* -- Less than 1 MAX_MSG remains -- */
-        if (remaining < MAX_MSG) {
+        /* -- Less than 1 MAX_PAYLOAD remains -- */
+        if (remaining < MAX_PAYLOAD) {
             chunk.set_data(original.data().substr(it, remaining));
             it       += remaining;
             remaining = 0; /* -- no more to send -- */
         } else {
-            chunk.set_data(original.data().substr(it, MAX_MSG));
-            it        += MAX_MSG;
-            remaining -= MAX_MSG;
+            chunk.set_data(original.data().substr(it, MAX_PAYLOAD));
+            it        += MAX_PAYLOAD;
+            remaining -= MAX_PAYLOAD;
         }
 
         DataSet d;
@@ -629,22 +624,22 @@ Status AraxServer::Arax_task_issue(ServerContext *ctx, const TaskRequest *req, R
     uint64_t proc    = req->proc();
     size_t in_count  = req->in_count();
     size_t out_count = req->out_count();
-    void *host_init  = (void*)req->host_init().data();
+    void *host_init  = (void *) req->host_init().data();
     size_t host_size = req->host_size();
 
     /* -- Fix the buffer i/o arrays -- */
     arax_buffer_s in_buffer[in_count];
     arax_buffer_s out_buffer[out_count];
 
-    uint64_t* in  = (uint64_t*)req->in_buffer().data();
-    uint64_t* out = (uint64_t*)req->out_buffer().data();
+    uint64_t *in  = (uint64_t *) req->in_buffer().data();
+    uint64_t *out = (uint64_t *) req->out_buffer().data();
 
-    for(auto i = 0; i < in_count; i++){
-      in_buffer[i] = buffers[in[i]];
+    for (auto i = 0; i < in_count; i++) {
+        in_buffer[i] = buffers[in[i]];
     }
 
-    for(auto i = 0; i < out_count; i++){
-      out_buffer[i] = buffers[out[i]];
+    for (auto i = 0; i < out_count; i++) {
+        out_buffer[i] = buffers[out[i]];
     }
 
     arax_accel *exec   = arax_accels[accel];
@@ -652,7 +647,7 @@ Status AraxServer::Arax_task_issue(ServerContext *ctx, const TaskRequest *req, R
 
     uint64_t id = get_unique_id();
 
-    arax_task* task = NULL;
+    arax_task *task = NULL;
     task = arax_task_issue(exec, process, host_init, host_size, in_count, in_buffer, out_count, out_buffer);
 
     insert_pair(arax_tasks, id, task);
@@ -693,7 +688,7 @@ Status AraxServer::Arax_task_free(ServerContext *ctx, const TaskMessage *req, Em
     }
 
     arax_task_free(arax_tasks[task]);
-    auto it = arax_tasks.find(task); 
+    auto it = arax_tasks.find(task);
     arax_tasks.erase(it);
 
     return Status::OK;
@@ -834,7 +829,7 @@ Status AraxServer::Arax_data_init_aligned(ServerContext *ctx, const AraxData *re
 
     size_t size        = req->size();
     size_t alignment   = req->alligned();
-    arax_buffer_s data = (arax_buffer_s *)arax_data_init_aligned(pipe_s, size, alignment);
+    arax_buffer_s data = (arax_buffer_s *) arax_data_init_aligned(pipe_s, size, alignment);
 
     res->set_id(get_unique_id());
     insert_pair(buffers, res->id(), data);
@@ -863,12 +858,14 @@ Status AraxServer::Arax_data_allocate_remote(ServerContext *ctx, const DataSet *
     uint64_t accel  = req->accel();
 
     if (!check_if_exists(buffers, buffer)) {
-        std::string error_msg("-- No buffer exists with ID'" + std::to_string(buffer) + "' (in data allocate remote)--");
+        std::string error_msg("-- No buffer exists with ID'" + std::to_string(buffer)
+          + "' (in data allocate remote)--");
         return Status(StatusCode::INVALID_ARGUMENT, error_msg);
     }
 
     if (!check_if_exists(arax_accels, accel)) {
-        std::string error_msg("-- No accelerator with ID'" + std::to_string(accel) + "' exists (in data allocate remote)--");
+        std::string error_msg("-- No accelerator with ID'" + std::to_string(accel)
+          + "' exists (in data allocate remote)--");
         return Status(StatusCode::INVALID_ARGUMENT, error_msg);
     }
 
@@ -879,77 +876,82 @@ Status AraxServer::Arax_data_allocate_remote(ServerContext *ctx, const DataSet *
     return Status::OK;
 }
 
-Status AraxServer::Arax_task_issue_streaming(ServerContext* ctx, ServerReaderWriter<ResourceID, TaskRequest>* stream){
+Status AraxServer::Arax_task_issue_streaming(ServerContext *ctx, ServerReaderWriter<ResourceID, TaskRequest> *stream)
+{
+    #ifdef DEBUG
+    assert(ctx);
+    assert(stream);
+    #endif
 
-  #ifdef DEBUG
-  assert(ctx);
-  assert(stream);
-  #endif
+    TaskRequest req;
+    ResourceID res;
 
-  TaskRequest req;
-  ResourceID res;
+    if (!stream->Read(&req)) {
+        std::string err_message("Stream broke");
+        return Status(StatusCode::DATA_LOSS, err_message);
+    }
 
-  if(!stream->Read(&req)){
-    std::string err_message("Stream broke");
-    return Status(StatusCode::DATA_LOSS, err_message);
-  }
+    /* Do this once, and then get the host argument in the loop */
+    uint64_t accel   = req.accel();
+    uint64_t proc    = req.proc();
+    size_t in_count  = req.in_count();
+    size_t out_count = req.out_count();
+    void *host_init  = (void *) req.host_init().data();
+    size_t host_size = req.host_size();
 
-  /* Do this once, and then get the host argument in the loop */
-  uint64_t accel   = req.accel();
-  uint64_t proc    = req.proc();
-  size_t in_count  = req.in_count();
-  size_t out_count = req.out_count();
-  void *host_init  = (void*)req.host_init().data();
-  size_t host_size = req.host_size();
+    /* -- Fix the buffer i/o arrays -- */
+    arax_buffer_s in_buffer[in_count];
+    arax_buffer_s out_buffer[out_count];
 
-  /* -- Fix the buffer i/o arrays -- */
-  arax_buffer_s in_buffer[in_count];
-  arax_buffer_s out_buffer[out_count];
+    uint64_t *in  = (uint64_t *) req.in_buffer().data();
+    uint64_t *out = (uint64_t *) req.out_buffer().data();
 
-  uint64_t* in  = (uint64_t*)req.in_buffer().data();
-  uint64_t* out = (uint64_t*)req.out_buffer().data();
+    for (auto i = 0; i < in_count; i++) {
+        in_buffer[i] = buffers[in[i]];
+    }
 
-  for(auto i = 0; i < in_count; i++){
-    in_buffer[i] = buffers[in[i]];
-  }
+    for (auto i = 0; i < out_count; i++) {
+        out_buffer[i] = buffers[out[i]];
+    }
 
-  for(auto i = 0; i < out_count; i++){
-    out_buffer[i] = buffers[out[i]];
-  }
+    arax_accel *exec   = arax_accels[accel];
+    arax_proc *process = arax_processes[proc];
 
-  arax_accel *exec   = arax_accels[accel];
-  arax_proc *process = arax_processes[proc];
+    /* Call the first arax_task_issue outside of the loop */
+    arax_task *task = arax_task_issue(exec, process, host_init, host_size, in_count, in_buffer, out_count, out_buffer);
 
-  /* Call the first arax_task_issue outside of the loop */
-  arax_task* task = arax_task_issue(exec, process, host_init, host_size, in_count, in_buffer, out_count, out_buffer);
-
-  uint64_t id = get_unique_id();
-  insert_pair(arax_tasks, id, task);
-
-  // Send the ID to the client
-  res.set_id(id);
-  
-  if(!stream->Write(res)){
-    std::string err_message("Stream broke");
-    return Status(StatusCode::DATA_LOSS, err_message);
-  }
-
-  while(stream->Read(&req)){
-    host_init = (void*)req.host_init().data();
-    task = arax_task_issue(exec, process, host_init, host_size, in_count, in_buffer, out_count, out_buffer);
-    id = get_unique_id();
+    uint64_t id = get_unique_id();
     insert_pair(arax_tasks, id, task);
 
+    // Send the ID to the client
     res.set_id(id);
-    
-    if(!stream->Write(res)){
-      std::string err_message("Stream broke");
-      return Status(StatusCode::DATA_LOSS, err_message);
-    }
-  }
 
-  return Status::OK;
-}
+    if (!stream->Write(res)) {
+        std::string err_message("Stream broke");
+        return Status(StatusCode::DATA_LOSS, err_message);
+    }
+
+    while (stream->Read(&req)) {
+        host_init = (void *) req.host_init().data();
+        task      = arax_task_issue(exec, process, host_init, host_size, in_count, in_buffer, out_count, out_buffer);
+
+        if(task == NULL){
+          std::string err_message("-- Task failed (in Arax_task_issue_streaming)");
+          return Status(StatusCode::ABORTED, err_message);
+        }
+        id        = get_unique_id();
+        insert_pair(arax_tasks, id, task);
+
+        res.set_id(id);
+
+        if (!stream->Write(res)) {
+            std::string err_message("Stream broke");
+            return Status(StatusCode::DATA_LOSS, err_message);
+        }
+    }
+
+    return Status::OK;
+} // AraxServer::Arax_task_issue_streaming
 
 int main()
 {

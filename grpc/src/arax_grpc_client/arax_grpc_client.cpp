@@ -11,27 +11,21 @@ using grpc::Status;
 
 using namespace arax;
 
-/*
- * Add some colors for the output
- */
 #ifdef __linux__
 #define ERROR_COL   "\033[1;38;5;9;1m"
 #define SUCCESS_COL "\033[1;37;38;5;10m"
 #define RESET_COL   "\033[0m"
 #endif /* #ifdef __linux__ */
 
-constexpr long int MAX_MSG = 524288;  
-constexpr long int CHANNEL_POOL = 10;  
+constexpr long int MAX_PAYLOAD = 524288;
 
-/*
- * Constructors
- */
 AraxClient::AraxClient(const char *addr)
 {
-  grpc::ChannelArguments args;
-  args.SetInt(GRPC_ARG_MAX_CONCURRENT_STREAMS, 200);
-  main_channel = grpc::CreateCustomChannel(addr, InsecureChannelCredentials(), args);
-  stub_ = Arax::NewStub(main_channel);
+    grpc::ChannelArguments args;
+
+    args.SetInt(GRPC_ARG_MAX_CONCURRENT_STREAMS, 200);
+    main_channel = grpc::CreateCustomChannel(addr, InsecureChannelCredentials(), args);
+    stub_        = Arax::NewStub(main_channel);
 }
 
 /*
@@ -41,54 +35,59 @@ AraxClient::~AraxClient(){ }
 
 // -------------------- Arax Client Services --------------------
 
-void AraxClient::set_reader_writer(){
-  this->stream = stub_->Arax_task_issue_streaming(&task_ctx);
+void AraxClient::set_reader_writer()
+{
+    delete(task_ctx);
+    task_ctx = new ClientContext;
+    this->stream = stub_->Arax_task_issue_streaming(task_ctx);
 }
 
-void AraxClient::terminate_task_issue_streaming(){
-  stream->WritesDone();
-  Status status = stream->Finish();
+void AraxClient::terminate_task_issue_streaming()
+{
+    stream->WritesDone();
+    Status status = stream->Finish();
 
-  if (!status.ok()) {
-    #ifdef __linux__
-    std::stringstream ss;
-    ss << ERROR_COL;
-    ss << "\nERROR: " << status.error_code() << "\n";
-    ss << status.error_message() << "\n";
-    ss << status.error_details() << "\n\n";
-    ss << RESET_COL;
-    std::cerr << ss.str();
-    #else
-    std::cerr << "\nERROR: " << status.error_code() << "\n";
-    std::cerr << status.error_message() << "\n";
-    std::cerr << status.error_details() << "\n\n";
-    #endif /* ifdef __linux__ */
+    if (!status.ok()) {
+        #ifdef __linux__
+        std::stringstream ss;
+        ss << ERROR_COL;
+        ss << "\nERROR: " << status.error_code() << "\n";
+        ss << status.error_message() << "\n";
+        ss << status.error_details() << "\n\n";
+        ss << RESET_COL;
+        std::cerr << ss.str();
+        #else
+        std::cerr << "\nERROR: " << status.error_code() << "\n";
+        std::cerr << status.error_message() << "\n";
+        std::cerr << status.error_details() << "\n\n";
+        #endif /* ifdef __linux__ */
 
-    return;
-  }
+        return;
+    }
 }
 
 uint64_t AraxClient::client_arax_task_issue_streaming(uint64_t accel, uint64_t proc, void *host_init, size_t host_size,
-      size_t in_count,
-      uint64_t *in_buffer,
-      size_t out_count, uint64_t *out_buffer
-){
-  ResourceID res;
-  TaskRequest req;
+  size_t in_count,
+  uint64_t *in_buffer,
+  size_t out_count, uint64_t *out_buffer
+)
+{
+    TaskRequest req;
+    ResourceID res;
 
-  req.set_accel(accel);
-  req.set_proc(proc);
-  req.set_in_count(in_count);
-  req.set_out_count(out_count);
-  req.set_host_init(host_init, host_size);
-  req.set_host_size(host_size);
-  req.set_in_buffer(in_buffer, in_count * sizeof(uint64_t));
-  req.set_out_buffer(out_buffer, out_count * sizeof(uint64_t));
+    req.set_accel(accel);
+    req.set_proc(proc);
+    req.set_in_count(in_count);
+    req.set_out_count(out_count);
+    req.set_host_init(host_init, host_size);
+    req.set_host_size(host_size);
+    req.set_in_buffer(in_buffer, in_count * sizeof(uint64_t));
+    req.set_out_buffer(out_buffer, out_count * sizeof(uint64_t));
 
-  stream->Write(req);
-  stream->Read(&res);
+    stream->Write(req);
+    stream->Read(&res);
 
-  return res.id();
+    return res.id();
 }
 
 /*
@@ -99,7 +98,6 @@ void AraxClient::client_arax_clean()
     ClientContext ctx;
     Empty req;
     Empty res;
-
 
     Status status = stub_->Arax_clean(&ctx, req, &res);
 
@@ -377,7 +375,7 @@ void AraxClient::client_arax_data_set(uint64_t buffer, uint64_t accel, void *dat
      * client streaming version, which fragments the data and sends them sequentially.
      * If they are not, then proceed normally
      */
-    if (size > MAX_MSG) {
+    if (size > MAX_PAYLOAD) {
         large_data_set(buffer, accel, data, size);
         return;
     }
@@ -434,7 +432,7 @@ void AraxClient::client_arax_data_get(uint64_t buffer, void *user, size_t size)
     ResourceID req;
     DataSet res;
 
-    if (size > MAX_MSG) {
+    if (size > MAX_PAYLOAD) {
         client_arax_large_data_get(buffer, user, size);
         return;
     }
@@ -734,22 +732,23 @@ void AraxClient::large_data_set(uint64_t buffer, uint64_t accel, void *data, siz
     // /* -- write to stream for server -- */
     std::unique_ptr<ClientWriter<DataSet> > writer(stub_->Arax_data_set_streaming(&ctx, &res));
 
-    // /* -- Split the data into chunks of 1 MAX_MSG each-- */
+    // /* -- Split the data into chunks of 1 MAX_PAYLOAD each-- */
     long int remaining = size;
-    size_t it      = 0;
+    size_t it = 0;
+
     // int iterations = 0;
 
     // fprintf(stderr, "It %zu, Current sent %zu, Remaining %ld Iterations %d\n", it, it, remaining, iterations);
     while (it < size) {
-        /* -- Less than 1 MAX_MSG remains -- */
-        if (remaining < MAX_MSG) {
+        /* -- Less than 1 MAX_PAYLOAD remains -- */
+        if (remaining < MAX_PAYLOAD) {
             chunk.set_data(original.data().substr(it, remaining));
             it       += remaining;
             remaining = 0; /* -- no more to send -- */
         } else {
-            chunk.set_data(original.data().substr(it, MAX_MSG));
-            it        += MAX_MSG;
-            remaining -= MAX_MSG;
+            chunk.set_data(original.data().substr(it, MAX_PAYLOAD));
+            it        += MAX_PAYLOAD;
+            remaining -= MAX_PAYLOAD;
         }
 
         DataSet d;
