@@ -36,7 +36,6 @@ private:
 
     /* ReaderWriter for the client. Used for task_issues streaming */
     std::shared_ptr<grpc::ClientReaderWriter<arax::TaskRequest, arax::ResourceID> > stream;
-
     grpc::ClientContext* task_ctx = 0;
 
     /*
@@ -56,8 +55,8 @@ public:
      * Method to set up Client Reader/Writer for bidirectional
      * streaming. Should be called before using arax_task_issue_stream.
      *
-     * Note: If multiple calls to arax_task_issue_stream are to be made, must call
-     *       this just once, otherwise aborts.
+     * Note: For each call to task_issue_streaming, a prior matching call to
+     *       this must be made
      */
     void set_reader_writer();
 

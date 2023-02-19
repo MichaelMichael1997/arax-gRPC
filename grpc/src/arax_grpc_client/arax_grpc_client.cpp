@@ -31,16 +31,13 @@ AraxClient::AraxClient(const char *addr)
 /*
  * Destructors
  */
-AraxClient::~AraxClient(){ 
-  delete(task_ctx);
-}
+AraxClient::~AraxClient(){}
 
 // -------------------- Arax Client Services --------------------
 
 void AraxClient::set_reader_writer()
 {
-    delete(task_ctx);
-    task_ctx = new ClientContext;
+    task_ctx     = new ClientContext;
     this->stream = stub_->Arax_task_issue_streaming(task_ctx);
 }
 
