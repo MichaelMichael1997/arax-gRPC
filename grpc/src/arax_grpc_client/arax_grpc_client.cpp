@@ -31,7 +31,9 @@ AraxClient::AraxClient(const char *addr)
 /*
  * Destructors
  */
-AraxClient::~AraxClient(){ }
+AraxClient::~AraxClient(){ 
+  delete(task_ctx);
+}
 
 // -------------------- Arax Client Services --------------------
 
@@ -61,9 +63,9 @@ void AraxClient::terminate_task_issue_streaming()
         std::cerr << status.error_message() << "\n";
         std::cerr << status.error_details() << "\n\n";
         #endif /* ifdef __linux__ */
-
-        return;
     }
+
+    delete(task_ctx);
 }
 
 uint64_t AraxClient::client_arax_task_issue_streaming(uint64_t accel, uint64_t proc, void *host_init, size_t host_size,
