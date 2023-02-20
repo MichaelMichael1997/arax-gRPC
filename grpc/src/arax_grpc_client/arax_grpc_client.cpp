@@ -65,30 +65,6 @@ void AraxClient::terminate_task_issue_streaming()
     delete(task_ctx);
 }
 
-uint64_t AraxClient::client_arax_task_issue_streaming(uint64_t accel, uint64_t proc, void *host_init, size_t host_size,
-  size_t in_count,
-  uint64_t *in_buffer,
-  size_t out_count, uint64_t *out_buffer
-)
-{
-    TaskRequest req;
-    ResourceID res;
-
-    req.set_accel(accel);
-    req.set_proc(proc);
-    req.set_in_count(in_count);
-    req.set_out_count(out_count);
-    req.set_host_init(host_init, host_size);
-    req.set_host_size(host_size);
-    req.set_in_buffer(in_buffer, in_count * sizeof(uint64_t));
-    req.set_out_buffer(out_buffer, out_count * sizeof(uint64_t));
-
-    stream->Write(req);
-    stream->Read(&res);
-
-    return res.id();
-}
-
 /*
  * Delete the shared segment
  */
