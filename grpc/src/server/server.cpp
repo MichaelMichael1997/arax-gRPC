@@ -394,7 +394,6 @@ grpc::Status AraxServer::Arax_data_set(grpc::ServerContext *ctx, const arax::Dat
         return Status(StatusCode::INVALID_ARGUMENT, error_msg);
     }
 
-    /* -- Pass the data as a string to arax, do the rest in the kernel -- */
     arax_data_set(buffers[buffer], arax_accels[accel], req->data().data());
     return Status::OK;
 } // AraxServer::Arax_data_set
@@ -876,82 +875,6 @@ Status AraxServer::Arax_data_allocate_remote(ServerContext *ctx, const DataSet *
     return Status::OK;
 }
 
-Status AraxServer::Arax_task_issue_streaming(ServerContext *ctx, ServerReaderWriter<ResourceID, TaskRequest> *stream)
-{
-    #ifdef DEBUG
-    assert(ctx);
-    assert(stream);
-    #endif
-
-    TaskRequest req;
-    ResourceID res;
-
-    if (!stream->Read(&req)) {
-        std::string err_message("Stream broke");
-        return Status(StatusCode::DATA_LOSS, err_message);
-    }
-
-    /* Do this once, and then get the host argument in the loop */
-    uint64_t accel   = req.accel();
-    uint64_t proc    = req.proc();
-    size_t in_count  = req.in_count();
-    size_t out_count = req.out_count();
-    void *host_init  = (void *) req.host_init().data();
-    size_t host_size = req.host_size();
-
-    /* -- Fix the buffer i/o arrays -- */
-    arax_buffer_s in_buffer[in_count];
-    arax_buffer_s out_buffer[out_count];
-
-    uint64_t *in  = (uint64_t *) req.in_buffer().data();
-    uint64_t *out = (uint64_t *) req.out_buffer().data();
-
-    for (auto i = 0; i < in_count; i++) {
-        in_buffer[i] = buffers[in[i]];
-    }
-
-    for (auto i = 0; i < out_count; i++) {
-        out_buffer[i] = buffers[out[i]];
-    }
-
-    arax_accel *exec   = arax_accels[accel];
-    arax_proc *process = arax_processes[proc];
-
-    /* Call the first arax_task_issue outside of the loop */
-    arax_task *task = arax_task_issue(exec, process, host_init, host_size, in_count, in_buffer, out_count, out_buffer);
-
-    uint64_t id = get_unique_id();
-    insert_pair(arax_tasks, id, task);
-
-    // Send the ID to the client
-    res.set_id(id);
-
-    if (!stream->Write(res)) {
-        std::string err_message("Stream broke");
-        return Status(StatusCode::DATA_LOSS, err_message);
-    }
-
-    while (stream->Read(&req)) {
-        host_init = (void *) req.host_init().data();
-        task      = arax_task_issue(exec, process, host_init, host_size, in_count, in_buffer, out_count, out_buffer);
-
-        if(task == NULL){
-          std::string err_message("-- Task failed (in Arax_task_issue_streaming)");
-          return Status(StatusCode::ABORTED, err_message);
-        }
-        id        = get_unique_id();
-        insert_pair(arax_tasks, id, task);
-
-        res.set_id(id);
-
-        if (!stream->Write(res)) {
-            std::string err_message("Stream broke");
-            return Status(StatusCode::DATA_LOSS, err_message);
-        }
-    }
-
-    return Status::OK;
-} // AraxServer::Arax_task_issue_streaming
 
 int main()
 {
