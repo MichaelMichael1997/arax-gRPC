@@ -10,7 +10,7 @@ message(STATUS "Generated with build type: ${CMAKE_BUILD_TYPE}")
 
 set(CMAKE_CXX_STANDARD 11)
 
-add_compile_options(-Wall -Wextra -pedantic -g)
+add_compile_options(-g)
 
 find_package(arax CONFIG REQUIRED)
 find_package(Threads)

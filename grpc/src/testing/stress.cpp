@@ -12,8 +12,6 @@ typedef uint64_t Buffer;
 typedef uint64_t Proc;
 typedef uint64_t Accel;
 
-#define NUM_TASKS 2048
-
 typedef struct test{
   int i;
 }Test;
@@ -24,6 +22,15 @@ int main(int argc, char *argv[])
 {
     using std::chrono::high_resolution_clock;
     using std::chrono::duration;
+
+    if(argc == 2){
+      #define NUM_TASKS atoi(argv[1])
+    }else{
+      std::cerr << "Usage:\n\t" << argv[0] << " <number-of-tasks>\n";
+      exit(EXIT_FAILURE);
+    }
+
+    std::cerr << "Number of tasks: " << NUM_TASKS << '\n';
 
     AraxClient client("localhost:50051");
 
@@ -42,19 +49,18 @@ int main(int argc, char *argv[])
     tasks.reserve(NUM_TASKS);
 
     auto start = high_resolution_clock::now();
-    client.set_reader_writer();
+    INIT_TASK_STREAMING(client)
     for (int i = 0; i < NUM_TASKS; i++) {
         test.i = i+1;
         Task task = client.client_arax_task_issue_streaming(accel, proc, &test, sizeof(Test), 0, 0, 0, 0);
         tasks.push_back(task);
     }
-    client.terminate_task_issue_streaming();
+    TERM_TASK_STREAMING(client)
     auto end = high_resolution_clock::now();
 
     duration<double, std::milli> dur = end - start;
     std::cerr << "Loop time for streaming: " << dur.count() << " ms\n";
 
-    std::cerr << "Tasks to be freed: " << tasks.size() << '\n';
     for (auto& task : tasks) {
       client.client_arax_task_free(task);
     }

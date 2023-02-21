@@ -25,10 +25,10 @@
 #include "../generated/arax.grpc.pb.h"
 #include "../generated/arax.pb.h"
 
+#define INIT_TASK_STREAMING(client) client.set_reader_writer();
+#define TERM_TASK_STREAMING(client) client.terminate_task_issue_streaming();
 
 // -------------------- Arax Client Class --------------------
-
-
 class AraxClient {
 private:
     std::unique_ptr<arax::Arax::Stub> stub_;
@@ -49,11 +49,6 @@ private:
      */
     void large_data_set(uint64_t buffer, uint64_t accel, void *data, size_t size);
 
-    /*
-     * Callback method for the async_task_issue method.
-     * Takes as an argument a task ID and a vector to store it
-     */
-    void async_task_callback(grpc::Status status, arax::ResourceID res, std::vector<uint64_t>& tasks);
 public:
 
     /*
@@ -94,10 +89,11 @@ public:
      * @ same params as task_issue
      * @return The task ID
      */
-    inline uint64_t client_arax_task_issue_streaming(uint64_t accel, uint64_t proc, void *host_init, size_t host_size,
-      size_t in_count,
-      uint64_t *in_buffer,
-      size_t out_count, uint64_t *out_buffer){
+    inline uint64_t client_arax_task_issue_streaming(const uint64_t accel, const uint64_t proc, 
+      const void *host_init, const size_t host_size,
+      const size_t in_count,
+      const uint64_t *in_buffer,
+      const size_t out_count, const uint64_t *out_buffer){
       arax::TaskRequest req;
       arax::ResourceID res;
 

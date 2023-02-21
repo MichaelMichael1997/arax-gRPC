@@ -53,8 +53,6 @@ private:
     std::map<uint64_t, arax_proc *> arax_processes;
     std::map<uint64_t, arax_accel *> arax_accels;
     std::map<uint64_t, arax_task *> arax_tasks;
-    std::map<uint64_t, arax_vaccel_s *> arax_vaccels;
-    std::map<uint64_t, arax_data_s *> data_s;
 
     /*
      * Template function to add a pair into an std::map

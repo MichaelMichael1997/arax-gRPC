@@ -41,27 +41,6 @@ void AraxClient::set_reader_writer()
     this->stream = stub_->Arax_task_issue_streaming(task_ctx);
 }
 
-void AraxClient::async_task_callback(Status status, arax::ResourceID res, std::vector<uint64_t>& tasks){
-  if(status.ok() || res.id() != 0){
-    tasks.push_back(res.id());
-  }else{
-    #ifdef __linux__
-    std::stringstream ss;
-    ss << ERROR_COL;
-    ss << "\nERROR: " << status.error_code() << "\n";
-    ss << status.error_message() << "\n";
-    ss << status.error_details() << "\n\n";
-    ss << RESET_COL;
-    std::cerr << ss.str();
-    #else
-    std::cerr << "\nERROR: " << status.error_code() << "\n";
-    std::cerr << status.error_message() << "\n";
-    std::cerr << status.error_details() << "\n\n";
-    #endif /* ifdef __linux__ */
-  }
-}
-
-
 void AraxClient::terminate_task_issue_streaming()
 {
     stream->WritesDone();

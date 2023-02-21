@@ -501,11 +501,11 @@ Status AraxServer::Arax_task_issue(ServerContext *ctx, const TaskRequest *req, R
     uint64_t *in  = (uint64_t *) req->in_buffer().data();
     uint64_t *out = (uint64_t *) req->out_buffer().data();
 
-    for (auto i = 0; i < in_count; i++) {
+    for (auto i = 0; i < in_count; ++i) {
         in_buffer[i] = buffers[in[i]];
     }
 
-    for (auto i = 0; i < out_count; i++) {
+    for (auto i = 0; i < out_count; ++i) {
         out_buffer[i] = buffers[out[i]];
     }
 
