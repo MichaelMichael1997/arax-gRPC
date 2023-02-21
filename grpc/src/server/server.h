@@ -12,6 +12,8 @@
 #include <string.h>
 #include <map>
 #include <thread>
+#include <condition_variable>
+#include <signal.h>
 
 #include <grpc/grpc.h>
 #include <grpcpp/security/server_credentials.h>
@@ -42,15 +44,11 @@
 class AraxServer final : public arax::Arax::Service
 {
 private:
-    std::unique_ptr<grpc::Server> server; // Unique pointer to the Server service
+    std::unique_ptr<grpc::Server> server;
+    uint64_t unique_id; 
+    arax_pipe_s *pipe_s;
 
-    std::thread server_thread; // --> Thread running the server wait method
 
-    uint64_t unique_id; // Current value for the unique id to be given to a resource. Starts from 1.
-
-    arax_pipe_s *pipe_s; // Arax pipe_s instance. Arax initialized in the Constructor
-
-    /* Mappings to store resources, with key a unique uint64_t ID */
     std::map<uint64_t, arax_buffer_s> buffers;
     std::map<uint64_t, arax_proc *> arax_processes;
     std::map<uint64_t, arax_accel *> arax_accels;
@@ -140,6 +138,11 @@ public:
      * @return void
      */
     void shutdown_server();
+
+   /*
+    * Thread polls to check for server shutdown
+    */
+    void server_shutdown_thread();
 
     /*
      * -------------------- Arax Services Implementations --------------------
@@ -447,5 +450,14 @@ public:
     return grpc::Status::OK;
 } // AraxServer::Arax_task_issue_streaming
 };
+
+/*
+ * Signal hanlder callback
+ */
+void signal_handler_callback(int signum);
+
+extern bool shutdown_required;
+extern std::mutex mutex;
+extern std::condition_variable cond;
 
 #endif /* #ifndef SERVER_H */

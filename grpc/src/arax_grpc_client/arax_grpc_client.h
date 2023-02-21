@@ -49,6 +49,11 @@ private:
      */
     void large_data_set(uint64_t buffer, uint64_t accel, void *data, size_t size);
 
+    /*
+     * Callback method for the async_task_issue method.
+     * Takes as an argument a task ID and a vector to store it
+     */
+    void async_task_callback(grpc::Status status, arax::ResourceID res, std::vector<uint64_t>& tasks);
 public:
 
     /*
@@ -93,23 +98,23 @@ public:
       size_t in_count,
       uint64_t *in_buffer,
       size_t out_count, uint64_t *out_buffer){
-        arax::TaskRequest req;
-        arax::ResourceID res;
+      arax::TaskRequest req;
+      arax::ResourceID res;
 
-        req.set_accel(accel);
-        req.set_proc(proc);
-        req.set_in_count(in_count);
-        req.set_out_count(out_count);
-        req.set_host_init(host_init, host_size);
-        req.set_host_size(host_size);
-        req.set_in_buffer(in_buffer, in_count * sizeof(uint64_t));
-        req.set_out_buffer(out_buffer, out_count * sizeof(uint64_t));
+      req.set_accel(accel);
+      req.set_proc(proc);
+      req.set_in_count(in_count);
+      req.set_out_count(out_count);
+      req.set_host_init(host_init, host_size);
+      req.set_host_size(host_size);
+      req.set_in_buffer(in_buffer, in_count * sizeof(uint64_t));
+      req.set_out_buffer(out_buffer, out_count * sizeof(uint64_t));
 
-        stream->Write(req);
-        stream->Read(&res);
+      stream->Write(req);
+      stream->Read(&res);
 
-        return res.id();
-      }
+      return res.id();
+    }
 
     /*
      * Delete the shared segment

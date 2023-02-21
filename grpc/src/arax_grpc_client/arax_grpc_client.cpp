@@ -24,6 +24,7 @@ AraxClient::AraxClient(const char *addr)
     grpc::ChannelArguments args;
 
     args.SetInt(GRPC_ARG_MAX_CONCURRENT_STREAMS, 200);
+    args.SetInt(GRPC_ARG_KEEPALIVE_TIME_MS, 100);
     main_channel = grpc::CreateCustomChannel(addr, InsecureChannelCredentials(), args);
     stub_        = Arax::NewStub(main_channel);
 }
@@ -34,12 +35,32 @@ AraxClient::AraxClient(const char *addr)
 AraxClient::~AraxClient(){}
 
 // -------------------- Arax Client Services --------------------
-
 void AraxClient::set_reader_writer()
 {
     task_ctx     = new ClientContext;
     this->stream = stub_->Arax_task_issue_streaming(task_ctx);
 }
+
+void AraxClient::async_task_callback(Status status, arax::ResourceID res, std::vector<uint64_t>& tasks){
+  if(status.ok() || res.id() != 0){
+    tasks.push_back(res.id());
+  }else{
+    #ifdef __linux__
+    std::stringstream ss;
+    ss << ERROR_COL;
+    ss << "\nERROR: " << status.error_code() << "\n";
+    ss << status.error_message() << "\n";
+    ss << status.error_details() << "\n\n";
+    ss << RESET_COL;
+    std::cerr << ss.str();
+    #else
+    std::cerr << "\nERROR: " << status.error_code() << "\n";
+    std::cerr << status.error_message() << "\n";
+    std::cerr << status.error_details() << "\n\n";
+    #endif /* ifdef __linux__ */
+  }
+}
+
 
 void AraxClient::terminate_task_issue_streaming()
 {
@@ -64,6 +85,7 @@ void AraxClient::terminate_task_issue_streaming()
 
     delete(task_ctx);
 }
+
 
 /*
  * Delete the shared segment

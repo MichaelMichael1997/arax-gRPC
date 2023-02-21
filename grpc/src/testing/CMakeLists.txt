@@ -28,7 +28,8 @@ target_compile_definitions(stresslib PRIVATE BUILD_SO)
 target_link_libraries(stresslib arax)
 
 # Create the executable and create link the library
-foreach(_target noop_grpc data struct clean_arax stress)
+# foreach(_target noop_grpc data struct clean_arax stress)
+foreach(_target clean_arax stress)
 	add_executable(${_target}
 			"${_target}.cpp" 
 		      )

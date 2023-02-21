@@ -36,7 +36,7 @@ message(STATUS "${PROJECT_NAME} ${PROJECT_VERSION}")
 set(ARAX ../../build)
 set(CONTROLLER ../../controller/build)
 
-add_compile_options(-Wall -Wextra -pedantic -g)
+add_compile_options(-g)
 
 find_package(arax CONFIG REQUIRED)
 find_library(ARAX_LIB arax_st)
