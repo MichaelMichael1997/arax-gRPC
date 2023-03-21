@@ -4,29 +4,30 @@
 
 
 # Directory Layout
-- **protos** - The directory with the protocol buffers. The main file is **arax.proto**
+- **protos** - Protocol buffer definitions 
 - **src**
-  - **arax_grpc_client** - Contains the code for the Client API. Note that the Client API, as well as the proto files are built from the build directory in the src directory
-  - **server** - Contains the Server Class implementation.
-  - **testing** - Contains the tests
+  - **arax_grpc_client** - gRPC Arax API
+  - **server** - gRPC Server implementation.
+  - **testing** - Some tests/examples 
 
 # Building
 
 ## **Client,Protos and Tests**
-  You can build the client API, generate the *.pb.h, *.pb.cc, files from the protocol buffers, as well as the tests/kernel ops by doing the following, from inside the grpc/src directory:
+  To build the gRPC Arax library and examples: 
+
   ```
   rm -rf build
   mkdir build
   cd build
   cmake ..
-  make
+  make -j
   ``` 
 ## **Server**
-To build the server go to the grpc/src/server directory and do the following:
+  To build the server go to src/server and:
   ```
   rm -rf build
   mkdir build
   cd build
   cmake ..
-  make
+  make -j
   ```
