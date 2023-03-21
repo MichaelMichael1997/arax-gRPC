@@ -19,11 +19,12 @@ using namespace arax;
 
 constexpr long int MAX_PAYLOAD = 524288;
 
+#define MAX_CONC_STREAMS 1000
+
 AraxClient::AraxClient(const char *addr)
 {
     grpc::ChannelArguments args;
-
-    args.SetInt(GRPC_ARG_MAX_CONCURRENT_STREAMS, 200);
+    args.SetInt(GRPC_ARG_MAX_CONCURRENT_STREAMS, MAX_CONC_STREAMS);
     args.SetInt(GRPC_ARG_KEEPALIVE_TIME_MS, 100);
     main_channel = grpc::CreateCustomChannel(addr, InsecureChannelCredentials(), args);
     stub_        = Arax::NewStub(main_channel);
@@ -136,6 +137,7 @@ uint64_t AraxClient::client_arax_buffer(size_t size)
 
     return res.id();
 } // AraxClient::client_arax_buffer
+
 
 /*
  * Register a new process 'func_name'
@@ -345,12 +347,6 @@ void AraxClient::client_arax_data_set(uint64_t buffer, uint64_t accel, void *dat
     assert(data);
     #endif
 
-    /*
-     * Google suggests that protobuf messages over 1MB are not optimal.
-     * If the serialized data is larger than that, then this calls the
-     * client streaming version, which fragments the data and sends them sequentially.
-     * If they are not, then proceed normally
-     */
     if (size > MAX_PAYLOAD) {
         large_data_set(buffer, accel, data, size);
         return;
@@ -365,7 +361,6 @@ void AraxClient::client_arax_data_set(uint64_t buffer, uint64_t accel, void *dat
         return;
     }
 
-    /* -- Plus 1 for the null terminating character -- */
     req.set_buffer(buffer);
     req.set_accel(accel);
     req.set_data_size(size);
@@ -705,22 +700,16 @@ void AraxClient::large_data_set(uint64_t buffer, uint64_t accel, void *data, siz
     original.set_data(data, size);
     DataSet chunk;
 
-    // /* -- write to stream for server -- */
     std::unique_ptr<ClientWriter<DataSet> > writer(stub_->Arax_data_set_streaming(&ctx, &res));
 
-    // /* -- Split the data into chunks of 1 MAX_PAYLOAD each-- */
     long int remaining = size;
     size_t it = 0;
 
-    // int iterations = 0;
-
-    // fprintf(stderr, "It %zu, Current sent %zu, Remaining %ld Iterations %d\n", it, it, remaining, iterations);
     while (it < size) {
-        /* -- Less than 1 MAX_PAYLOAD remains -- */
         if (remaining < MAX_PAYLOAD) {
             chunk.set_data(original.data().substr(it, remaining));
             it       += remaining;
-            remaining = 0; /* -- no more to send -- */
+            remaining = 0;
         } else {
             chunk.set_data(original.data().substr(it, MAX_PAYLOAD));
             it        += MAX_PAYLOAD;
@@ -738,15 +727,9 @@ void AraxClient::large_data_set(uint64_t buffer, uint64_t accel, void *data, siz
             break;
         }
 
-        // iterations += 1;
-        // fprintf(stderr, "It %zu, Current sent %zu, Remaining %ld Iterations %d\n", it, it, remaining, iterations);
     }
 
-    // std::cerr << "Loop iterations " << iterations << "\n";
-
     writer->WritesDone();
-
-    // fprintf(stderr, "Finished streaming!\n");
 
     Status status = writer->Finish();
 

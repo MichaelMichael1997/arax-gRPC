@@ -1,5 +1,3 @@
-# Build the tests and arax_controller dynamic libs (kernel ops)
-# Set the path to the Arax controller include directory
 set(ARAX_CONTROLLER_PATH ${CMAKE_CURRENT_BINARY_DIR}/../../../../controller)
 
 # -- Add the kernels in their own separate directory
@@ -11,25 +9,13 @@ target_include_directories(nooplib PRIVATE ${ARAX_CONTROLLER_PATH}/include)
 target_compile_definitions(nooplib PRIVATE BUILD_SO)
 target_link_libraries(nooplib arax)
 
-# -- Create another test kernel --
 add_library(datalib SHARED data.cpp)
 target_include_directories(datalib PRIVATE ${ARAX_CONTROLLER_PATH}/include)
 target_compile_definitions(datalib PRIVATE BUILD_SO)
 target_link_libraries(datalib arax)
 
-add_library(structlib SHARED struct.cpp)
-target_include_directories(structlib PRIVATE ${ARAX_CONTROLLER_PATH}/include)
-target_compile_definitions(structlib PRIVATE BUILD_SO)
-target_link_libraries(structlib arax)
 
-add_library(stresslib SHARED stress.cpp)
-target_include_directories(stresslib PRIVATE ${ARAX_CONTROLLER_PATH}/include)
-target_compile_definitions(stresslib PRIVATE BUILD_SO)
-target_link_libraries(stresslib arax)
-
-# Create the executable and create link the library
-# foreach(_target noop_grpc data struct clean_arax stress)
-foreach(_target clean_arax stress)
+foreach(_target noop_grpc data)
 	add_executable(${_target}
 			"${_target}.cpp" 
 		      )
@@ -40,9 +26,8 @@ foreach(_target clean_arax stress)
 	  target_link_libraries(${_target}
 			      arax
 			      pthread
-            nooplib
-            datalib
-            structlib
+                  nooplib
+                  datalib
 			      ${_REFLECTION}
 			      ${_GRPC_GRPCPP}
 			      ${_PROTOBUF_LIBPROTOBUF}

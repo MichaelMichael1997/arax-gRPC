@@ -1,13 +1,14 @@
 {
-	"paths": ["../../rodinia/arax_rodinia/"
+	"paths": ["../../arax_apps/arax_rodinia/",
+    "../../arax_apps/arax_examples/"
 	],
 	"groups": {
 		"1Gpu": {
 			"accels": [
 				{
-					"arch":"CPU",
+					"arch":"GPU",
 					"job_pref":"AnyJob",
-					"cpu_core": "1"
+					"pci_id":0
           }
 			],
 			"sched": {
@@ -16,3 +17,4 @@
 		}
 	}
 }
+

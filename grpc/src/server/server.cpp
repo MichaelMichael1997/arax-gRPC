@@ -63,7 +63,6 @@ AraxServer::AraxServer(const char *addr)
 
     unique_id = 1;
     ServerBuilder builder;
-
     builder.AddListeningPort(addr, grpc::InsecureServerCredentials());
     builder.RegisterService(this);
     server = std::unique_ptr<Server>(builder.BuildAndStart());
@@ -93,20 +92,16 @@ void AraxServer::shutdown_server(){
 void AraxServer::start_server()
 {
     server->Wait();
+
 }
 
 uint64_t AraxServer::get_unique_id()
 {
-    unique_id++;
-    return unique_id - 1;
+    return unique_id++;
 }
 
 /*
  * -------------------- Arax Services Implementations --------------------
- */
-
-/*
- * ------------------------ Sync Methods ---------------------------
  */
 
 Status AraxServer::Arax_clean(ServerContext *ctx, const Empty *req, Empty *res)
@@ -320,7 +315,6 @@ Status AraxServer::Arax_data_get(ServerContext *ctx, const ResourceID *req, Data
 
     uint64_t id = req->id();
 
-    /* Check if buffer/data_s with that ID exists */
     if (!check_if_exists(buffers, id)) {
         std::string error_msg("-- No buffer with ID '" + std::to_string(id) + "' exists (in data get)--");
         return Status(StatusCode::INVALID_ARGUMENT, error_msg);
@@ -352,16 +346,13 @@ Status AraxServer::Arax_large_data_get(ServerContext *ctx, const ResourceID *req
 
     uint64_t id = req->id();
 
-    /* Check if buffer with that ID exists */
     if (!check_if_exists(buffers, id)) {
         std::string error_msg("-- No buffer with ID '" + std::to_string(id) + "' exists (in data get)--");
         return Status(StatusCode::INVALID_ARGUMENT, error_msg);
     }
 
     size_t size = arax_data_size(buffers[id]);
-    // std::cerr << "Size in large data get: " << size << '\n';
 
-    // Alocate memory for the data to be copied
     void *data = malloc(size);
 
     #ifdef DEBUG
@@ -373,7 +364,6 @@ Status AraxServer::Arax_large_data_get(ServerContext *ctx, const ResourceID *req
         return Status(StatusCode::INTERNAL, error);
     }
 
-    /* -- Get the data from the buffer -- */
     arax_data_get(buffers[id], data);
 
     if (!data) {
@@ -393,9 +383,7 @@ Status AraxServer::Arax_large_data_get(ServerContext *ctx, const ResourceID *req
     /* -- Split the data into chunks of 1 MAX_PAYLOAD each-- */
     long int remaining = size;
     size_t it = 0;
-    // int iterations     = 0;
 
-    // fprintf(stderr, "It %zu, Current sent %zu, Remaining %ld Iterations %d\n", it, it, remaining, iterations);
     while (it < size) {
         /* -- Less than 1 MAX_PAYLOAD remains -- */
         if (remaining < MAX_PAYLOAD) {
@@ -418,11 +406,7 @@ Status AraxServer::Arax_large_data_get(ServerContext *ctx, const ResourceID *req
             return Status(StatusCode::DATA_LOSS, error_msg);
         }
 
-        // iterations += 1;
-        // fprintf(stderr, "It %zu, Current sent %zu, Remaining %ld Iterations %d\n", it, it, remaining, iterations);
     }
-
-    // fprintf(stderr, "Total iterations %d\n", iterations);
 
     return Status::OK;
 } // AraxServer::Arax_large_data_get
@@ -437,7 +421,6 @@ Status AraxServer::Arax_data_size(ServerContext *ctx, const ResourceID *req, Dat
 
     uint64_t id = req->id();
 
-    // Check if buffer exists
     if (!check_if_exists(buffers, id)) {
         std::string error("-- Buffer with ID '" + std::to_string(id) + "' does not exist (in data size)--");
         return Status(StatusCode::INVALID_ARGUMENT, error);
@@ -460,7 +443,6 @@ Status AraxServer::Arax_data_free(ServerContext *ctx, const ResourceID *req, Emp
 
     uint64_t id = req->id();
 
-    // Check if buffer with ID exists
     if (!check_if_exists(buffers, id)) {
         std::string error("-- No buffer with ID '" + std::to_string(id) + "' exists (in data free)--");
         return Status(StatusCode::INVALID_ARGUMENT, error);
@@ -468,7 +450,6 @@ Status AraxServer::Arax_data_free(ServerContext *ctx, const ResourceID *req, Emp
 
     arax_data_free(buffers[id]);
 
-    // Remove the buffer from the mapping
     auto it = buffers.find(id);
     buffers.erase(it);
 
@@ -519,11 +500,6 @@ Status AraxServer::Arax_task_issue(ServerContext *ctx, const TaskRequest *req, R
 
     insert_pair(arax_tasks, id, task);
 
-    if (task == NULL) {
-        std::string error_msg("-- Failed to issue task (in arax task issue) --");
-        return Status(StatusCode::ABORTED, error_msg);
-    }
-
     res->set_id(id);
 
     return Status::OK;
@@ -539,7 +515,6 @@ Status AraxServer::Arax_task_free(ServerContext *ctx, const TaskMessage *req, Em
 
     uint64_t task = req->task_id();
 
-    // check if task exists
     if (!check_if_exists(arax_tasks, task)) {
         std::string error_msg("-- Task with ID '" + std::to_string(task) + "' does not exist (in task free)--");
         return Status(StatusCode::FAILED_PRECONDITION, error_msg);
@@ -556,7 +531,6 @@ Status AraxServer::Arax_task_wait(ServerContext *ctx, const TaskMessage *req, Ta
 {
     uint64_t id = req->task_id();
 
-    // See if task with the given ID exists
     if (!check_if_exists(arax_tasks, id)) {
         std::string error_msg("-- There is no task registered with ID '" + std::to_string(id) + "' (in task wait)--");
         return Status(StatusCode::INVALID_ARGUMENT, error_msg);
@@ -567,8 +541,6 @@ Status AraxServer::Arax_task_wait(ServerContext *ctx, const TaskMessage *req, Ta
     res->set_task_state(state);
     return Status::OK;
 }
-
-/* -- gRPC methods the client should not be able to call directly -- */
 
 Status AraxServer::Arax_data_set_streaming(ServerContext *ctx, ServerReader<DataSet> *reader, Empty *res)
 {
@@ -604,7 +576,7 @@ Status AraxServer::Arax_data_set_streaming(ServerContext *ctx, ServerReader<Data
     fprintf(stderr, "Buffer %zu, Accel %zu, Data size %zu Data size in megabytes %zu\n", buffer, accel, data_size,
       megabytes);
 
-    /* -- Check if all data arrived -- */
+    /* -- Check for data loss -- */
     if (data_size != client_data.size()) {
         std::string error_msg("-- Possible data loss (in data set)--");
         return Status(StatusCode::DATA_LOSS, error_msg);
@@ -713,6 +685,7 @@ int main()
   signal(SIGINT, signal_handler_callback);
   signal(SIGQUIT, signal_handler_callback);
   signal(SIGTERM, signal_handler_callback);
+
   AraxServer server("localhost:50051");
   std::thread poll_signals([&](){
     server.server_shutdown_thread();

@@ -4,8 +4,9 @@
 #include <arax_pipe.h>
 #include <arax_types.h>
 #include <core/arax_data.h>
+#include <chrono>
 
-#define ARR_SIZE 800000
+#define ARR_SIZE 16384 
 
 using namespace arax;
 
@@ -32,10 +33,13 @@ typedef struct Host
 #ifdef BUILD_MAIN
 int main(int argc, char *argv[])
 {
+    using std::chrono::high_resolution_clock;
+    using std::chrono::duration;
+
     AraxClient client("localhost:50051");
 
     size_t size = ARR_SIZE * sizeof(float);
-    float *p    = (float *) malloc(size);
+    float *p    = (float *) calloc(ARR_SIZE, sizeof(float));
 
     for (int i = 0; i < ARR_SIZE; i++) {
         p[i] = i / VAR;
@@ -51,8 +55,15 @@ int main(int argc, char *argv[])
     if (proc == 0) {
         exit(EXIT_FAILURE);
     }
-
+  
+    auto start = high_resolution_clock::now();
     client.client_arax_data_set(io[0], accel, p, size);
+    auto end   = high_resolution_clock::now();
+
+    duration<double, std::milli> data_set_dur = end-start;
+
+    std::cerr << "Data size: " << (size >> 20) << '\n';
+    std::cerr << "Duration for data set: " << data_set_dur.count() << " ms" << '\n';
 
     Host host;
 
@@ -73,7 +84,6 @@ int main(int argc, char *argv[])
     }
 
     std::cerr << "Size for data get: " << size << '\n';
-    client.client_arax_data_get(io[0], p, size);
     client.client_arax_data_get(io[0], p, size);
 
     for (int i = 0; i < ARR_SIZE; i++) {
@@ -103,10 +113,8 @@ arax_task_state_e float_array(arax_task_msg_s *msg)
 {
     Host host = *(Host *) arax_task_host_data(msg, sizeof(Host));
 
-    // proc_t proc  = *(proc_t *) arax_data_deref(msg->io[0]);
     float *arr = (float *) arax_data_deref(msg->io[0]);
 
-    // block_process(proc);
     process_arr(arr, host.i);
 
     arax_task_mark_done(msg, task_completed);

@@ -1046,7 +1046,7 @@ dkms.conf
 
 # vs code 
 .vscode
-src/build/
-src/generated/
+src/build/*
+src/generated/*
 
 .cache

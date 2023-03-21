@@ -79,6 +79,47 @@ public:
 
     // -------------------- Arax Client Services --------------------
 
+    inline uint64_t async_client_arax_task_issue(const uint64_t accel, const uint64_t proc, 
+      const void *host_init, const size_t host_size,
+      const size_t in_count,
+      const uint64_t *in_buffer,
+      const size_t out_count, const uint64_t *out_buffer)
+    {
+      arax::TaskRequest req;
+      arax::ResourceID res;
+
+      req.set_accel(accel);
+      req.set_proc(proc);
+      req.set_in_count(in_count);
+      req.set_out_count(out_count);
+      req.set_host_init(host_init, host_size);
+      req.set_host_size(host_size);
+      req.set_in_buffer(in_buffer, in_count * sizeof(uint64_t));
+      req.set_out_buffer(out_buffer, out_count * sizeof(uint64_t));
+
+      grpc::ClientContext ctx;
+      grpc::CompletionQueue cq;
+      grpc::Status status;
+
+      std::unique_ptr<grpc::ClientAsyncResponseReader<arax::ResourceID>> rpc(
+        stub_->AsyncArax_task_issue(&ctx, req, &cq)
+      );
+
+      rpc->Finish(&res, &status, (void *)1);
+      void* got_tag;
+      bool ok = false;
+
+      GPR_ASSERT(cq.Next(&got_tag, &ok));
+      GPR_ASSERT(got_tag == (void*)1);
+      GPR_ASSERT(ok);
+
+      if(status.ok()){
+        return res.id();
+      }else{
+        return 0;
+      }
+    }
+
     /*
      * This method should be used when task_issue is to be called multiple
      * times sequentially (e.g. Inside a loop)
@@ -93,7 +134,8 @@ public:
       const void *host_init, const size_t host_size,
       const size_t in_count,
       const uint64_t *in_buffer,
-      const size_t out_count, const uint64_t *out_buffer){
+      const size_t out_count, const uint64_t *out_buffer)
+    {
       arax::TaskRequest req;
       arax::ResourceID res;
 

@@ -3,12 +3,10 @@
 
 cmake_minimum_required(VERSION 3.13)
 
-# project name
 project(g_arax VERSION 1.0.0)
 
 message(STATUS "Using build type ${CMAKE_BUILD_TYPE}")
 
-# -- Uncomment to include gRPC as a dependency, rather than installing it locally --
 # include(FetchContent)
 
 # FetchContent_Declare(
@@ -92,7 +90,6 @@ add_custom_command(
          DEPENDS "${protos}"
   )
  
-# Include the build/include Arax directory in the build path
 include_directories(../../build/include)
 include_directories(../../build/src)
 include_directories(../../controller/build/include)
